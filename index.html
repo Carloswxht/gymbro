@@ -1343,6 +1343,8 @@
   .rt-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-dim);text-align:center;padding:6px 8px;white-space:nowrap;border-bottom:1px solid var(--line);background:var(--panel);}
   .rt-table td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle;text-align:center;background:var(--panel);}
   .rt-table tbody tr:last-child td{border-bottom:none;}
+  /* v96 — filas alternas con otro tono de fondo para distinguir un ejercicio del siguiente */
+  .rt-table tr.rt-row.zebra td{background:color-mix(in srgb, var(--accent, #8A8F98) 10%, var(--panel-2));}
   .rt-c1,.rt-c2{position:sticky;z-index:2;text-align:left !important;box-sizing:border-box;vertical-align:top !important;}
   .rt-c1{left:0;width:112px;min-width:112px;max-width:112px;padding-left:16px !important;}
   .rt-c2{left:112px;width:118px;min-width:118px;max-width:118px;box-shadow:8px 0 10px -8px rgba(0,0,0,.55);}
@@ -5897,7 +5899,7 @@ function rtFirstNum(val, fallback){
 // v82 — mode 'exec' = pantalla "Entreno de hoy": misma tabla, pero sin
 // "Quitar" y con el check de "Hecho" debajo del ejercicio.
 let openExecAltSub = null; // sub-músculo con las alternativas abiertas en el entreno
-function routineTableRowHtml(sub, mode){
+function routineTableRowHtml(sub, mode, zebra){
   const isExec = mode === 'exec';
   const included = isExec ? true : isSubIncluded(sub);
   const ex = routineChosenFor(sub);
@@ -5920,7 +5922,7 @@ function routineTableRowHtml(sub, mode){
     : `<button class="rt-opt add" data-opt="${sub.id}">+ Añadir a mi rutina</button>`;
 
   const row = `
-    <tr class="rt-row ${included ? '' : 'off'} ${isOpen ? 'open' : ''} ${isDone ? 'done' : ''}" data-sub="${sub.id}" data-ex="${ex}">
+    <tr class="rt-row ${zebra ? 'zebra' : ''} ${included ? '' : 'off'} ${isOpen ? 'open' : ''} ${isDone ? 'done' : ''}" data-sub="${sub.id}" data-ex="${ex}">
       <td class="rt-c1">
         <span class="rt-sub-name">${sub.name}</span>
         <span class="rt-sub-lay">${sub.lay || ''}</span>
@@ -5955,7 +5957,7 @@ function routineTableRowHtml(sub, mode){
 }
 
 function routineGroupHtml(m, mode){
-  const rows = m.subs.map(s => SUB_INDEX[s.id]).filter(Boolean).map(s => routineTableRowHtml(s, mode)).join('');
+  const rows = m.subs.map(s => SUB_INDEX[s.id]).filter(Boolean).map((s, i) => routineTableRowHtml(s, mode, i % 2 === 1)).join('');
   return `
     <div class="rt-group">
       <p class="rt-muscle">${m.name}</p>
@@ -6160,7 +6162,7 @@ function homeRowHtml(item, mode, opts){
         : `<button class="rt-opt add" data-hopt="${item.id}">+ Añadir a mi rutina</button>`);
   }
   const row = `
-    <tr class="rt-row ${included ? '' : 'off'} ${isDone ? 'done' : ''} ${altOpen ? 'open' : ''}" data-hid="${item.id}">
+    <tr class="rt-row ${opts.zebra ? 'zebra' : ''} ${included ? '' : 'off'} ${isDone ? 'done' : ''} ${altOpen ? 'open' : ''}" data-hid="${item.id}">
       <td class="rt-c1">${c1}</td>
       <td class="rt-c2">${c2}</td>
       <td class="rt-d">${vid ? `<button class="rt-btn" data-hwatch="${item.id}" ${dis}>${rtPlaySvg}Ver</button>` : '<span class="rt-na">—</span>'}</td>
@@ -6204,7 +6206,7 @@ function homeGroupHtml(cat, mode){
       items = items.filter(i => set.has(i.id));
     }
     if(items.length === 0) return '';
-    rows = items.map(it => homeRowHtml(it, mode)).join('');
+    rows = items.map((it, i) => homeRowHtml(it, mode, { zebra: i % 2 === 1 })).join('');
   }
   const isCore = cat.name === 'Cardio (zona 2)' || cat.name === 'Postura';
   return `
