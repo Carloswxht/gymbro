@@ -1179,6 +1179,11 @@
     text-transform:uppercase;letter-spacing:.5px;
     margin:0 0 12px;
   }
+  .app-version{
+    font-size:11.5px;color:var(--text-dim);margin:-6px 0 12px;
+    font-variant-numeric:tabular-nums;
+  }
+  #deletePass{ margin:4px 0 12px; }
   .danger-item{
     background:var(--panel-2);border:1px solid rgba(229,72,77,.35);
     border-radius:14px;padding:14px 16px;cursor:pointer;
@@ -1394,7 +1399,6 @@
   .rt-alt-title{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-dim);margin:6px 0 2px;}
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -1425,7 +1429,7 @@
         </div>
       </div>
       <button class="auth-btn" id="authSubmit">Entrar</button>
-      <p class="auth-switch">¿No tienes cuenta? <span id="authSwitch">Crear una</span></p>
+      <p class="auth-switch" id="authSwitch">¿No tienes cuenta? <span>Crear una</span></p>
       <p class="auth-msg" id="authMsg"></p>
     </div>
 
@@ -1551,6 +1555,7 @@
       </div>
 
       <p class="settings-section-title" style="margin-top:26px;">Cuenta</p>
+      <p class="app-version" id="appVersion"></p>
       <div class="danger-item" id="deleteAccountBtn">
         <p class="di-title">Eliminar cuenta</p>
         <p class="di-desc">Borra tu cuenta y todos tus datos por completo, o consérvalos para volver más adelante.</p>
@@ -1567,6 +1572,7 @@
         </button>
       </div>
       <p class="delete-explain">Puedes eliminar tu cuenta y todos tus datos por completo ahora mismo (rutina, pesos, historial, y tu acceso con este correo), o simplemente cerrar sesión y guardar todo por si quieres volver más adelante.</p>
+      <input type="password" class="custom-name-input" id="deletePass" placeholder="Tu contraseña, para confirmar" autocomplete="current-password">
       <button class="delete-btn-danger" id="confirmDeleteDataBtn">Eliminar mi cuenta por completo</button>
       <button class="delete-btn-safe" id="keepDataBtn">Guardar mis datos</button>
     </div>
@@ -1802,8 +1808,8 @@
       </div>
       <input type="text" class="custom-name-input" id="addExName" placeholder="Nombre del ejercicio" style="margin-top:16px;">
       <input type="text" class="custom-name-input" id="addExVideo" placeholder="Link del video (opcional)">
-      <p class="add-ex-or">o</p>
-      <label class="custom-name-input add-ex-upload" for="addExVideoFile">
+      <p class="add-ex-or" hidden>o</p>
+      <label class="custom-name-input add-ex-upload" for="addExVideoFile" hidden>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4L7 9M12 4L17 9M5 20H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Subir video desde tu equipo
       </label>
@@ -2289,7 +2295,7 @@ async function persistHomeSetup(){
   const extraObj = {};
   HOME_EXTRA_CATEGORY_NAMES.forEach(name => { extraObj[name] = [...homeExtraIncluded[name]]; });
   try{
-    await sb.from('progreso').upsert([
+    await upsertProgreso([
       { user_id: currentUser.id, work_key: '__home_cardio_choice__', series: homeCardioChoice || '' },
       { user_id: currentUser.id, work_key: '__home_postura_included__', reps: JSON.stringify([...homePosturaIncluded]) },
       { user_id: currentUser.id, work_key: '__home_extra_included__', reps: JSON.stringify(extraObj) },
@@ -2551,7 +2557,7 @@ const V77_DEFAULT_FIRST = {
 async function persistCatalogVersion(){
   if(!currentUser) return;
   try{
-    await sb.from('progreso').upsert(
+    await upsertProgreso(
       { user_id: currentUser.id, work_key: '__catalog_version__', reps: String(CATALOG_VERSION) },
       { onConflict: 'user_id,work_key' }
     );
@@ -2577,11 +2583,11 @@ function setSubIncluded(sub, on){
 async function persistOptionalSubs(){
   if(!currentUser) return;
   try{
-    await sb.from('progreso').upsert(
+    await upsertProgreso(
       { user_id: currentUser.id, work_key: '__optional_subs__', reps: JSON.stringify([...optionalIncluded]) },
       { onConflict: 'user_id,work_key' }
     );
-    await sb.from('progreso').upsert(
+    await upsertProgreso(
       { user_id: currentUser.id, work_key: '__excluded_subs__', reps: JSON.stringify([...excludedSubs]) },
       { onConflict: 'user_id,work_key' }
     );
@@ -3131,8 +3137,7 @@ async function saveCustomExercise(){
   }
 
   const linkVal = document.getElementById('addExVideo').value.trim();
-  const fileInput = document.getElementById('addExVideoFile');
-  const file = fileInput.files && fileInput.files[0];
+  const file = null;
 
   const saveBtn = document.getElementById('addExSave');
   const originalLabel = saveBtn.textContent;
@@ -3141,18 +3146,10 @@ async function saveCustomExercise(){
 
   try{
     let videoUrl = linkVal || null;
-    if(file){
-      const path = `${currentUser.id}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await sb.storage.from('ejercicios-videos').upload(path, file);
-      if(uploadError) throw uploadError;
-      const { data: publicData } = sb.storage.from('ejercicios-videos').getPublicUrl(path);
-      videoUrl = publicData.publicUrl;
-    }
-    const { data, error } = await sb.from('ejercicios_personalizados')
-      .insert({ user_id: currentUser.id, sub_id: subId, nombre, video_url: videoUrl })
-      .select()
-      .single();
-    if(error) throw error;
+    // v97 — subir vídeos desde el móvil vuelve más adelante (necesita un
+    // servidor que compruebe la sesión); de momento, solo enlace.
+    if(videoUrl && !/^https:\/\//i.test(videoUrl)) videoUrl = 'https://' + videoUrl.replace(/^\w+:\/\//, '');
+    const data = await api('guardar_personalizado_gymbro', { p_token: sesionToken, p_sub_id: subId, p_nombre: nombre, p_video_url: videoUrl });
     if(!customExercises[subId]) customExercises[subId] = [];
     customExercises[subId].push({ id: data.id, nombre, video_url: videoUrl });
     chosenExercise[subId] = nombre;
@@ -3246,7 +3243,7 @@ async function persistDoneTodayOnce(){
   // antes de la última recarga y el resto aparecía sin marcar.
   donePersisted = { accent, ids: [...doneThisSession] };
   try{
-    await sb.from('progreso').upsert([{
+    await upsertProgreso([{
       user_id: currentUser.id,
       work_key: '__done_today__',
       reps: JSON.stringify({ accent, ids: [...doneThisSession] }),
@@ -3257,7 +3254,7 @@ async function clearPersistedDoneToday(){
   donePersisted = null;
   if(!currentUser) return;
   try{
-    await sb.from('progreso').upsert([{
+    await upsertProgreso([{
       user_id: currentUser.id,
       work_key: '__done_today__',
       reps: JSON.stringify({ accent: null, ids: [] }),
@@ -3402,11 +3399,7 @@ async function loadExerciseProgress(exName, token){
   const container = document.getElementById('exProgress');
   if(!container || !currentUser) return;
   try{
-    const { data, error } = await sb.from('sesiones')
-      .select('fecha, resumen')
-      .eq('user_id', currentUser.id)
-      .order('fecha', { ascending: true })
-      .limit(60);
+    const { data, error } = await selEntrenos({ orden: 'asc', limite: 60 });
     if(error) throw error;
     if(openExecIdx !== token) return; // el usuario ya cerró o abrió otro ejercicio
     const el = document.getElementById('exProgress');
@@ -4153,11 +4146,7 @@ async function loadStatsExerciseList(){
   if(!container || !currentUser) return;
   container.innerHTML = '<p style="text-align:center;color:var(--text-dim);padding:20px 4px;">Cargando…</p>';
   try{
-    const { data, error } = await sb.from('sesiones')
-      .select('fecha, resumen, tipo')
-      .eq('user_id', currentUser.id)
-      .order('fecha', { ascending: true })
-      .limit(200);
+    const { data, error } = await selEntrenos({ orden: 'asc', limite: 200 });
     if(error) throw error;
     const byExercise = {};
     (data || []).forEach(row=>{
@@ -4272,7 +4261,7 @@ async function renderStatsDaily(){
   if(!currentUser){ el.innerHTML = ''; return; }
   el.innerHTML = `<p class="history-empty">Cargando...</p>`;
   try{
-    const { data, error } = await sb.from('sesiones').select('*').eq('user_id', currentUser.id).order('fecha', { ascending:false }).limit(30);
+    const { data, error } = await selEntrenos({ orden: 'desc', limite: 30 });
     if(error) throw error;
     if(!data || data.length === 0){
       el.innerHTML = `<p class="history-empty">Todavía no tienes entrenos completados.</p>`;
@@ -4338,7 +4327,7 @@ async function renderStatsPeriod(){
     weekStart.setHours(0,0,0,0);
     const fetchStart = weekStart < monthStart ? weekStart : monthStart;
     const fetchStartStr = localDateStr(fetchStart);
-    const { data, error } = await sb.from('sesiones').select('fecha').eq('user_id', currentUser.id).gte('fecha', fetchStartStr);
+    const { data, error } = await selEntrenos({ desde: fetchStartStr });
     if(error) throw error;
     const monthStartStr = localDateStr(monthStart);
     const weekStartStr = localDateStr(weekStart);
@@ -4427,10 +4416,7 @@ async function getNextDayAccent(){
     // casa: esas sesiones se guardan con dia:null, y si la última sesión
     // guardada fuera una de casa, esta consulta (sin el filtro) devolvía
     // null y reseteaba por error la rotación del gym de vuelta al día 1.
-    const { data, error } = await sb.from('sesiones')
-      .select('dia, fecha').eq('user_id', currentUser.id)
-      .not('dia', 'is', null)
-      .order('created_at', { ascending:false }).limit(1);
+    const { data, error } = await selEntrenos({ conDia: true, por: 'created_at', orden: 'desc', limite: 1 });
     if(error) throw error;
     const lastAccent = data && data[0] ? data[0].dia : null;
     lastGymSession = data && data[0] ? { dia: Number(data[0].dia), fecha: data[0].fecha } : null;
@@ -4545,7 +4531,7 @@ async function renderHome(){
   const welcomeBack = document.getElementById('welcomeBack');
   if(!currentUser){ welcomeBack.innerHTML = ''; return; }
   try{
-    const { data, error } = await sb.from('sesiones').select('fecha').eq('user_id', currentUser.id).order('fecha', { ascending:false }).limit(1);
+    const { data, error } = await selEntrenos({ orden: 'desc', limite: 1 });
     if(error) throw error;
     if(!data || data.length === 0){
       welcomeBack.innerHTML = '';
@@ -4622,7 +4608,7 @@ async function finishSession(){
 
   let sessionInserted = false;
   try{
-    const { error } = await sb.from('sesiones').insert({ user_id: currentUser.id, fecha, resumen, dia: dia ? Number(dia) : null });
+    const { error } = await guardarEntreno({ fecha, resumen, dia: dia ? Number(dia) : null });
     if(!error) sessionInserted = true;
   }catch(e){
     // si falla el guardado del historial, no bloquea el flujo
@@ -4765,7 +4751,7 @@ async function finishHomeSession(){
   }));
   const fecha = localDateStr(new Date());
   try{
-    await sb.from('sesiones').insert({ user_id: currentUser.id, fecha, resumen, dia: null, tipo: 'casa' });
+    await guardarEntreno({ fecha, resumen, dia: null, tipo: 'casa' });
   }catch(e){
     // si falla el guardado del historial, no bloquea el flujo
   }
@@ -4950,11 +4936,122 @@ function showToast(msg, important){
 
 const workData = {}; // subId::ejercicio -> { peso, series, reps }
 
-// ---- Conexión a Supabase ----
-const SUPABASE_URL = 'https://pvcjolgqegthmudsvvlr.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_K4SoArRWzl7vFUaeVi3oqA_ZcvN411V';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ---- Conexión a la base (v97: autonomialab-db, carpeta gymbro) ----
+// Todo pasa por funciones de la base (las tablas están cerradas a la web).
+// La sesión es un token propio guardado en el móvil; vale 60 días y se
+// alarga sola al abrir la app.
+const APP_VERSION = 97;
+const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
+const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
+// Negocio de Gymbro: ?g=slug en la dirección. Hoy solo existe War300, que es
+// el de por defecto (la app instalada abre sin parámetros).
+const NEGOCIO = (new URLSearchParams(location.search).get('g') || 'war300').toLowerCase();
+const SESION_KEY = 'gymbro.sesion.' + NEGOCIO;
 let currentUser = null;
+let sesionToken = null;
+try{ sesionToken = localStorage.getItem(SESION_KEY); }catch(e){}
+
+const TEXTO_ERROR = {
+  CREDENCIALES: 'Correo o contraseña incorrectos.',
+  BLOQUEADO: 'Demasiados intentos. Espera 15 minutos y vuelve a probar.',
+  EMAIL_EN_USO: 'Ese correo ya tiene una cuenta. Prueba a entrar.',
+  EMAIL_NO_VALIDO: 'Revisa el correo: no parece válido.',
+  PASSWORD_CORTA: 'La contraseña debe tener al menos 8 caracteres.',
+  REGISTRO_CERRADO: 'Ahora mismo no se pueden crear cuentas nuevas.',
+  DEMASIADOS_INTENTOS: 'Demasiados intentos. Prueba más tarde.',
+  NEGOCIO_NO_VALIDO: 'Este enlace no es válido.',
+  SESION_CADUCADA: 'Tu sesión ha caducado. Vuelve a entrar.',
+  DATOS_NO_VALIDOS: 'Algún dato no es válido.',
+  DEMASIADOS_EJERCICIOS: 'Has llegado al máximo de ejercicios propios.',
+};
+function textoError(e){
+  return TEXTO_ERROR[e && e.message] || 'Ocurrió un error, inténtalo de nuevo.';
+}
+
+// Llama a una función de la base. Se corta a los 20 s (mala señal en el
+// gimnasio). Si la sesión ya no vale, cierra la sesión en la app.
+async function api(fn, args){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=> ctrl.abort(), 20000);
+  let res;
+  try{
+    res = await fetch(API_URL + fn, {
+      method: 'POST',
+      headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(args || {}),
+      signal: ctrl.signal,
+    });
+  } finally { clearTimeout(timer); }
+  const text = await res.text();
+  let body = null;
+  try{ body = text ? JSON.parse(text) : null; }catch(e){}
+  if(!res.ok){
+    const code = (body && body.message) || 'ERROR';
+    if(code === 'SESION_CADUCADA' && fn !== 'yo_gymbro') cerrarSesionLocal();
+    throw new Error(code);
+  }
+  return body;
+}
+function guardarSesion(token){
+  sesionToken = token;
+  try{ if(token) localStorage.setItem(SESION_KEY, token); else localStorage.removeItem(SESION_KEY); }catch(e){}
+}
+function usuarioDe(r){ return { id: r.id, email: r.email, nombre: r.nombre }; }
+// Al salir se vacía lo de la cuenta guardado en este móvil y se recarga la
+// página: así no queda en memoria nada de la cuenta anterior (pesos, rutina)
+// que se pudiera guardar en otra cuenta que entre después en el mismo móvil.
+function cerrarSesionLocal(){
+  guardarSesion(null);
+  entrenosCache = null;
+  try{
+    Object.keys(localStorage).filter(k => k.startsWith('war300_') || k === SESION_KEY + '.yo')
+      .forEach(k => localStorage.removeItem(k));
+  }catch(e){}
+  if(currentUser) location.reload();
+}
+
+// Progreso: misma forma que las filas de antes (work_key, peso, series…).
+// Devuelve { error } como hacía Supabase, sin lanzar.
+async function upsertProgreso(rows){
+  try{
+    const filas = (Array.isArray(rows) ? rows : [rows]).map(({ user_id, ...f }) => f);
+    await api('guardar_progreso_gymbro', { p_token: sesionToken, p_filas: filas });
+    return { error: null };
+  }catch(e){ return { error: e }; }
+}
+async function leerMisDatos(){
+  try{
+    const d = await api('mis_datos_gymbro', { p_token: sesionToken });
+    return { data: d, error: null };
+  }catch(e){ return { data: null, error: e }; }
+}
+
+// Entrenos terminados: se piden una vez y se guardan en memoria; las
+// consultas de cada pantalla filtran aquí.
+let entrenosCache = null;
+document.getElementById('appVersion').textContent = 'Gymbro v' + APP_VERSION;
+async function selEntrenos({ orden = 'asc', por = 'fecha', limite = null, desde = null, conDia = false } = {}){
+  try{
+    if(!entrenosCache) entrenosCache = await api('mis_entrenos_gymbro', { p_token: sesionToken });
+    let rows = entrenosCache.slice();
+    if(desde) rows = rows.filter(s => s.fecha >= desde);
+    if(conDia) rows = rows.filter(s => s.dia != null);
+    rows.sort((a, b)=>{
+      const k = por === 'created_at' ? (x => x.created_at) : (x => x.fecha + '|' + x.created_at);
+      return k(a) < k(b) ? -1 : k(a) > k(b) ? 1 : 0;
+    });
+    if(orden === 'desc') rows.reverse();
+    if(limite != null) rows = rows.slice(0, limite);
+    return { data: rows, error: null };
+  }catch(e){ return { data: null, error: e }; }
+}
+async function guardarEntreno({ fecha, resumen, dia = null, tipo = 'gym' }){
+  try{
+    await api('guardar_entreno_gymbro', { p_token: sesionToken, p_fecha: fecha, p_resumen: resumen, p_dia: dia, p_tipo: tipo });
+    entrenosCache = null;
+    return { error: null };
+  }catch(e){ return { error: e }; }
+}
 
 function buildRows(){
   const rows = [];
@@ -5008,7 +5105,7 @@ async function persistStateOnce(silent){
     return;
   }
   try{
-    const { error } = await sb.from('progreso').upsert(changed, { onConflict: 'user_id,work_key' });
+    const { error } = await upsertProgreso(changed, { onConflict: 'user_id,work_key' });
     if(error) throw error;
     changed.forEach(r => lastSavedRows.set(r.work_key, JSON.stringify(r)));
     persistRetrying = false;
@@ -5084,8 +5181,9 @@ async function loadState(){
   loadStateInFlight = true;
   lastSavedRows = new Map(); // tras recargar de Supabase, el primer guardado vuelve a enviar todo
   try{
-    const { data, error } = await sb.from('progreso').select('*').eq('user_id', currentUser.id);
+    const { data: misDatos, error } = await leerMisDatos();
     if(error) throw error;
+    const data = misDatos.progreso;
     let themeRaw = null;
     const rows = data || [];
 
@@ -5187,7 +5285,7 @@ async function loadState(){
     // aparezcan junto a los de fábrica desde el primer momento.
     customExercises = {};
     try{
-      const { data: customRows, error: customError } = await sb.from('ejercicios_personalizados').select('*').eq('user_id', currentUser.id);
+      const customRows = misDatos.personalizados, customError = null;
       if(!customError && customRows){
         customRows.forEach(row=>{
           if(!customExercises[row.sub_id]) customExercises[row.sub_id] = [];
@@ -5479,7 +5577,7 @@ function renderCustomGrid(){
 async function saveThemePref(){
   if(!currentUser) return;
   try{
-    await sb.from('progreso').upsert(
+    await upsertProgreso(
       { user_id: currentUser.id, work_key: '__theme__', series: currentThemeId },
       { onConflict: 'user_id,work_key' }
     );
@@ -5491,7 +5589,7 @@ async function saveThemePref(){
 async function saveCustomThemesList(){
   if(!currentUser) return;
   try{
-    await sb.from('progreso').upsert(
+    await upsertProgreso(
       { user_id: currentUser.id, work_key: '__custom_themes__', reps: JSON.stringify(customThemes) },
       { onConflict: 'user_id,work_key' }
     );
@@ -5503,7 +5601,7 @@ async function saveCustomThemesList(){
 async function persistDaySlots(){
   if(!currentUser) return;
   try{
-    await sb.from('progreso').upsert(
+    await upsertProgreso(
       { user_id: currentUser.id, work_key: '__day_slots__', reps: JSON.stringify(dayAssignment) },
       { onConflict: 'user_id,work_key' }
     );
@@ -5518,7 +5616,7 @@ async function persistDaySlots(){
 async function persistChecklistStep(){
   if(!currentUser) return;
   try{
-    await sb.from('progreso').upsert(
+    await upsertProgreso(
       { user_id: currentUser.id, work_key: '__checklist_step__', reps: JSON.stringify(checklistStep) },
       { onConflict: 'user_id,work_key' }
     );
@@ -5533,7 +5631,7 @@ async function persistChecklistStep(){
 async function persistDecidedSubs(){
   if(!currentUser) return;
   try{
-    await sb.from('progreso').upsert(
+    await upsertProgreso(
       { user_id: currentUser.id, work_key: '__decided_subs__', reps: JSON.stringify([...decidedSubIds]) },
       { onConflict: 'user_id,work_key' }
     );
@@ -5576,10 +5674,8 @@ settingsOverlay.addEventListener('click', (e)=>{
 });
 
 // ---- Eliminar cuenta ----
-// Nota importante: esto borra TODOS los datos del usuario (rutina, pesos,
-// historial completo) y cierra su sesión. No borra la cuenta de acceso en
-// sí (correo/contraseña) — eso requiere una llave de administrador de
-// Supabase que nunca debe vivir en el código del navegador, por seguridad.
+// v97 — borra TODOS los datos del usuario (rutina, pesos, historial) y deja
+// la cuenta anónima y apagada (borrar_mi_cuenta_gymbro). Pide la contraseña.
 const deleteConfirmOverlay = document.getElementById('deleteConfirmOverlay');
 document.getElementById('deleteAccountBtn').addEventListener('click', ()=>{
   deleteConfirmOverlay.classList.add('open');
@@ -5597,16 +5693,17 @@ document.getElementById('confirmDeleteDataBtn').addEventListener('click', async 
   if(!currentUser) return;
   const sure = confirm('Esto borra tu cuenta y todos tus datos por completo, de forma permanente. No podrás iniciar sesión de nuevo con este correo ni recuperar nada. ¿Seguro que quieres continuar?');
   if(!sure) return;
+  const passInput = document.getElementById('deletePass');
+  if(!passInput.value){ showToast('Escribe tu contraseña para confirmar.'); passInput.focus(); return; }
   try{
-    const { data, error } = await sb.functions.invoke('delete-account');
-    if(error) throw error;
-    if(data && data.error) throw new Error(data.error);
+    await api('borrar_mi_cuenta_gymbro', { p_token: sesionToken, p_password: passInput.value });
+    passInput.value = '';
     deleteConfirmOverlay.classList.remove('open');
     settingsOverlay.classList.remove('open');
     showToast('Tu cuenta fue eliminada.');
-    await sb.auth.signOut();
+    cerrarSesionLocal();
   }catch(e){
-    showToast('No se pudo eliminar la cuenta. Intenta de nuevo.');
+    showToast(e.message === 'CREDENCIALES' ? 'La contraseña no es correcta.' : 'No se pudo eliminar la cuenta. Intenta de nuevo.');
   }
 });
 
@@ -5721,9 +5818,8 @@ authSwitch.addEventListener('click', ()=>{
   authPass2Field.style.display = authMode === 'signup' ? 'block' : 'none';
   authPass2.value = '';
   authSwitch.innerHTML = authMode === 'signin'
-    ? '¿No tienes cuenta? <span id="authSwitch2">Crear una</span>'
-    : '¿Ya tienes cuenta? <span id="authSwitch2">Entrar</span>';
-  document.getElementById('authSwitch2').addEventListener('click', ()=> authSwitch.click());
+    ? '¿No tienes cuenta? <span>Crear una</span>'
+    : '¿Ya tienes cuenta? <span>Entrar</span>';
   setAuthMsg('');
 });
 
@@ -5762,24 +5858,24 @@ authSubmit.addEventListener('click', async ()=>{
   }
   setAuthMsg('Un momento...');
   try{
-    if(authMode === 'signin'){
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-      if(error) throw error;
-    } else {
-      const { error } = await sb.auth.signUp({ email, password });
-      if(error) throw error;
-      setAuthMsg('');
-      authConfirmEmail.textContent = email;
-      authBox.style.display = 'none';
-      authConfirm.classList.add('show');
-    }
+    const r = authMode === 'signin'
+      ? await api('entrar_gymbro', { p_slug: NEGOCIO, p_email: email, p_password: password })
+      : await api('registrar_gymbro', { p_slug: NEGOCIO, p_email: email, p_password: password });
+    if(r && r.error) throw new Error(r.error);
+    guardarSesion(r.token);
+    try{ localStorage.setItem(SESION_KEY + '.yo', JSON.stringify(usuarioDe(r))); }catch(e2){}
+    setAuthMsg('');
+    authPass.value = '';
+    authPass2.value = '';
+    onLoggedIn(usuarioDe(r));
   }catch(e){
-    setAuthMsg(e.message || 'Ocurrió un error, inténtalo de nuevo.', true);
+    setAuthMsg(textoError(e), true);
   }
 });
 
 document.getElementById('logoutBtn').addEventListener('click', async ()=>{
-  await sb.auth.signOut();
+  try{ await api('salir_gymbro', { p_token: sesionToken }); }catch(e){}
+  cerrarSesionLocal();
 });
 
 async function onLoggedIn(user){
@@ -5867,7 +5963,7 @@ function orderSubIdsForDay(dayName, subIds){
 async function persistSubOrder(){
   if(!currentUser) return;
   try{
-    await sb.from('progreso').upsert([{
+    await upsertProgreso([{
       user_id: currentUser.id,
       work_key: '__sub_order__',
       reps: JSON.stringify(routineSubOrder),
@@ -6886,9 +6982,8 @@ async function routeInitialScreen(){
   }
 
   try{
-    const { count, error } = await sb.from('sesiones')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', currentUser.id);
+    const { data: todos, error } = await selEntrenos();
+    const count = todos ? todos.length : 0;
     if(!error && (count || 0) === 0){
       // Sin pantalla guardada Y sin ningún entreno terminado: primera vez
       // real que abre la app, o LAST_VIEW_KEY se perdió (ej. borró datos
@@ -6918,6 +7013,8 @@ async function routeInitialScreen(){
 
 function onLoggedOut(){
   currentUser = null;
+  entrenosCache = null;
+  try{ localStorage.removeItem(SESION_KEY + '.yo'); }catch(e){}
   lastSavedRows = new Map();
   authGate.classList.remove('hidden');
   setAuthMsg('');
@@ -6934,16 +7031,22 @@ function onLoggedOut(){
 // pantalla en mitad del entreno — eso se sentía como la app "congelada"
 // o sin responder al desbloquear el teléfono. Ahora solo se hace la carga
 // completa la primera vez (o si cambia de cuenta).
-sb.auth.onAuthStateChange((event, session)=>{
-  if(session && session.user){
-    if(currentUser && currentUser.id === session.user.id){
-      currentUser = session.user; // solo se actualiza el token, sin recargar nada
-      return;
-    }
-    onLoggedIn(session.user);
+// v97 — sin Supabase Auth: al abrir, si hay sesión guardada se pregunta
+// quién es (yo_gymbro, que además alarga la sesión). Sin conexión se deja
+// entrar con lo último conocido para no bloquear el entreno.
+(async ()=>{
+  if(!sesionToken){ onLoggedOut(); return; }
+  try{
+    const yo = await api('yo_gymbro', { p_token: sesionToken });
+    try{ localStorage.setItem(SESION_KEY + '.yo', JSON.stringify(usuarioDe(yo))); }catch(e){}
+    onLoggedIn(usuarioDe(yo));
+  }catch(e){
+    if(e.message === 'SESION_CADUCADA' || e.message === 'NEGOCIO_NO_VALIDO'){ guardarSesion(null); onLoggedOut(); return; }
+    let yo = null;
+    try{ yo = JSON.parse(localStorage.getItem(SESION_KEY + '.yo')); }catch(e2){}
+    if(yo) onLoggedIn(yo); else onLoggedOut();
   }
-  else onLoggedOut();
-});
+})();
 
 // Registro del service worker — habilita instalación como PWA y tolerancia
 // a mala señal. Si falla (ej. navegador viejo), la app sigue funcionando igual.
