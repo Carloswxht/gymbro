@@ -1119,6 +1119,8 @@
     font-size:13px;color:var(--text-dim);
   }
   .auth-switch span{color:var(--text);font-weight:700;cursor:pointer;}
+  .auth-forgot{text-align:center;margin-top:14px;font-size:13px;}
+  .auth-forgot span{color:var(--text-dim);text-decoration:underline;cursor:pointer;}
   .auth-msg{
     font-size:12.5px;color:var(--text-dim);text-align:center;
     margin-top:14px;min-height:16px;
@@ -1410,8 +1412,8 @@
         <label>Correo</label>
         <input type="email" id="authEmail" autocomplete="email">
       </div>
-      <div class="auth-field">
-        <label>Contraseña</label>
+      <div class="auth-field" id="authPassField">
+        <label id="authPassLabel">Contraseña</label>
         <div class="pass-wrap">
           <input type="password" id="authPass" autocomplete="current-password">
           <button type="button" class="pass-toggle" data-target="authPass">
@@ -1429,6 +1431,7 @@
         </div>
       </div>
       <button class="auth-btn" id="authSubmit">Entrar</button>
+      <p class="auth-forgot" id="authForgot"><span>¿Has olvidado tu contraseña?</span></p>
       <p class="auth-switch" id="authSwitch">¿No tienes cuenta? <span>Crear una</span></p>
       <p class="auth-msg" id="authMsg"></p>
     </div>
@@ -4940,7 +4943,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // Todo pasa por funciones de la base (las tablas están cerradas a la web).
 // La sesión es un token propio guardado en el móvil; vale 60 días y se
 // alarga sola al abrir la app.
-const APP_VERSION = 97;
+const APP_VERSION = 98;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
 // Negocio de Gymbro: ?g=slug en la dirección. Hoy solo existe War300, que es
@@ -5811,17 +5814,76 @@ document.querySelectorAll('.pass-toggle').forEach(btn=>{
 });
 const authPass2 = document.getElementById('authPass2');
 
-authSwitch.addEventListener('click', ()=>{
-  authMode = authMode === 'signin' ? 'signup' : 'signin';
-  authTitle.textContent = authMode === 'signin' ? 'Entrar' : 'Crear cuenta';
-  authSubmit.textContent = authMode === 'signin' ? 'Entrar' : 'Crear cuenta';
-  authPass2Field.style.display = authMode === 'signup' ? 'block' : 'none';
+// v98 — cuatro modos: entrar, crear cuenta, pedir enlace para recuperar
+// la contraseña ('recover') y elegir la nueva desde ese enlace ('reset').
+const authForgot = document.getElementById('authForgot');
+const authPassField = document.getElementById('authPassField');
+const authEmailField = authEmail.closest('.auth-field');
+let recuperarToken = null;
+function setAuthMode(mode){
+  authMode = mode;
+  const txt = { signin: ['Entrar', 'Entrar'], signup: ['Crear cuenta', 'Crear cuenta'],
+    recover: ['Recuperar contraseña', 'Mandarme el enlace'], reset: ['Contraseña nueva', 'Guardar contraseña'] }[mode];
+  authTitle.textContent = txt[0];
+  authSubmit.textContent = txt[1];
+  authEmailField.style.display = mode === 'reset' ? 'none' : 'block';
+  authPassField.style.display = mode === 'recover' ? 'none' : 'block';
+  document.getElementById('authPassLabel').textContent = mode === 'reset' ? 'Contraseña nueva' : 'Contraseña';
+  authPass.autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
+  authPass2Field.style.display = (mode === 'signup' || mode === 'reset') ? 'block' : 'none';
+  authForgot.style.display = mode === 'signin' ? 'block' : 'none';
+  authPass.value = '';
   authPass2.value = '';
-  authSwitch.innerHTML = authMode === 'signin'
+  authSwitch.innerHTML = mode === 'signin'
     ? '¿No tienes cuenta? <span>Crear una</span>'
-    : '¿Ya tienes cuenta? <span>Entrar</span>';
+    : mode === 'signup' ? '¿Ya tienes cuenta? <span>Entrar</span>' : '<span>Volver a entrar</span>';
   setAuthMsg('');
-});
+}
+authSwitch.addEventListener('click', ()=> setAuthMode(authMode === 'signin' ? 'signup' : 'signin'));
+authForgot.addEventListener('click', ()=> setAuthMode('recover'));
+
+// El enlace del correo abre la app con #recuperar=CÓDIGO.
+(()=>{
+  const m = location.hash.match(/recuperar=([0-9a-f]{64})/);
+  if(!m) return;
+  recuperarToken = m[1];
+  history.replaceState(null, '', location.pathname + location.search);
+  setAuthMode('reset');
+  setAuthMsg('Elige tu contraseña nueva (mínimo 8 caracteres).');
+})();
+
+async function pedirEnlaceRecuperar(email){
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ setAuthMsg('Revisa el correo: no parece válido.', true); return; }
+  setAuthMsg('Un momento...');
+  try{
+    const res = await fetch('https://dorunbacwnkwdatfscri.supabase.co/functions/v1/recuperar-contrasena-gymbro', {
+      method: 'POST', headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if(!res.ok) throw new Error('ERROR');
+    setAuthMsg('Si ese correo tiene cuenta, te llegará un enlace en unos minutos. Mira también en «Spam».');
+  }catch(e){
+    setAuthMsg('No se pudo mandar. Revisa la conexión e inténtalo de nuevo.', true);
+  }
+}
+
+async function guardarContrasenaNueva(){
+  const nueva = authPass.value;
+  if(nueva.length < 8){ setAuthMsg('La contraseña debe tener al menos 8 caracteres.', true); return; }
+  if(nueva !== authPass2.value){ setAuthMsg('Las contraseñas no coinciden.', true); return; }
+  setAuthMsg('Un momento...');
+  try{
+    const r = await api('restablecer_gymbro', { p_token: recuperarToken, p_nueva: nueva });
+    recuperarToken = null;
+    setAuthMode('signin');
+    authEmail.value = r.email || '';
+    setAuthMsg('Contraseña cambiada. Ya puedes entrar con la nueva.');
+  }catch(e){
+    setAuthMsg(e.message === 'ENLACE_NO_VALIDO'
+      ? 'El enlace ha caducado o ya se usó. Pide otro con «¿Has olvidado tu contraseña?».'
+      : textoError(e), true);
+  }
+}
 
 const authConfirm = document.getElementById('authConfirm');
 const authConfirmEmail = document.getElementById('authConfirmEmail');
@@ -5830,18 +5892,15 @@ const authBox = document.querySelector('.auth-box');
 document.getElementById('authConfirmBack').addEventListener('click', ()=>{
   authConfirm.classList.remove('show');
   authBox.style.display = 'block';
-  authMode = 'signin';
-  authTitle.textContent = 'Entrar';
-  authSubmit.textContent = 'Entrar';
-  authPass.value = '';
-  authPass2.value = '';
-  authPass2Field.style.display = 'none';
-  setAuthMsg('');
+  setAuthMode('signin');
 });
 
 authSubmit.addEventListener('click', async ()=>{
   const email = authEmail.value.trim();
   const password = authPass.value;
+  if(authMode === 'reset') return guardarContrasenaNueva();
+  if(/\s/.test(email)){ setAuthMsg('El correo tiene un espacio: revísalo.', true); return; }
+  if(authMode === 'recover') return pedirEnlaceRecuperar(email);
   if(!email || !password){
     setAuthMsg('Completa correo y contraseña.', true);
     return;
@@ -7035,6 +7094,8 @@ function onLoggedOut(){
 // quién es (yo_gymbro, que además alarga la sesión). Sin conexión se deja
 // entrar con lo último conocido para no bloquear el entreno.
 (async ()=>{
+  // Con un enlace de recuperar contraseña se queda en esa pantalla.
+  if(recuperarToken){ authGate.classList.remove('hidden'); return; }
   if(!sesionToken){ onLoggedOut(); return; }
   try{
     const yo = await api('yo_gymbro', { p_token: sesionToken });

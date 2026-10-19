@@ -58,3 +58,15 @@ insert into comun.usuarios (negocio_id,email,name,password_hash,must_change_pass
  (1,'camarero@ejemplo.test','Camarero ejemplo',extensions.crypt('clave-camarero',extensions.gen_salt('bf',4)),false),
  (2,'plataforma@ejemplo.test','Plataforma ejemplo',extensions.crypt('clave-plataforma',extensions.gen_salt('bf',4)),false);
 insert into multibar.personal_multibar values (1,1,'admin');
+-- Ayudante común de enlaces de recuperación (copiado de Supabase, 19 oct).
+CREATE FUNCTION privado.crear_enlace(p_usuario integer, p_minutos integer) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','comun','multibar','privado','pg_temp' AS $f$
+declare v_token text;
+begin
+  if (select count(*) from comun.recuperaciones where usuario_id = p_usuario and created_at > now() - interval '1 hour') >= 3 then
+    return null;
+  end if;
+  update comun.recuperaciones set usado_at = now() where usuario_id = p_usuario and usado_at is null;
+  v_token := encode(privado.gen_random_bytes(32), 'hex');
+  insert into comun.recuperaciones (token_hash, usuario_id, expires_at) values (privado.digest(v_token, 'sha256'), p_usuario, now() + make_interval(mins => p_minutos));
+  return v_token;
+end $f$;
