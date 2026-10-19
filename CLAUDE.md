@@ -17,7 +17,7 @@
 - Las funciones de MultiBar (`personal_entrar`…) no ven cuentas de Gymbro y al revés (probado).
 
 ## Plan (19 oct, con el «sí» de Carlos)
-1. ✅ Bases v9 con Gymbro. ✅ SQL de la carpeta `gymbro` escrito y probado en local (`2026-10-19-gymbro-carpeta.sql`). **Pendiente: que Carlos lo pegue en Supabase → SQL Editor.**
+1. ✅ Bases v9 con Gymbro. ✅ SQL de la carpeta `gymbro` escrito y probado en local (`2026-10-19-gymbro-carpeta.sql`). ✅ **Aplicado en Supabase el 19 oct** (pegado por Carlos): 5 tablas y 16 funciones, huella `0e77c4908058072e79c386bdf4b8598b` idéntica a la copia probada; la web (anon) no ve la carpeta ni los ayudantes.
 2. Alta de War300 (negocio `war300`, tipo `gymbro`, registro abierto, `productos_contratados`) y copia de datos: 2 cuentas con su contraseña (la de Carlos pasa a `carloswxht+war300@gmail.com`), 238 filas de progreso, 1 entreno. El único vídeo del bucket no lo usa ningún ejercicio: no se copia.
 3. App v97: login y guardado con las funciones `_gymbro`; marca de War300 desde sus ajustes. Pendientes: recuperar contraseña por correo (función + Edge Function propias) y subida de vídeos (Edge Function; hoy el bucket de War300 está abierto a cualquiera).
 4. Panel de plataforma `/plataforma/` (Carlos) y panel del dueño (rol `admin`).
