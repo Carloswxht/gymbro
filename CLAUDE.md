@@ -1,0 +1,25 @@
+# Gymbro
+
+@PLATAFORMA.md
+
+> Las bases comunes de autonomIA Lab están en `PLATAFORMA.md` (copia idéntica de la maestra de `Carloswxht/AutonomIA-Lab`; no se cambia aquí). Donde este archivo contradiga a `PLATAFORMA.md`, gana `PLATAFORMA.md`.
+
+## Qué es esto
+- **Gymbro** es el gremio de rutinas de gimnasio de autonomIA Lab (decisión de Carlos, 19 oct). Sin relación con MultiBar: solo comparte la base `autonomialab-db`, la lista de negocios y las tablas de cuentas.
+- **War300 es su primer cliente** (como La Mar de Gambas en MultiBar). Ficha en `datos/clientes/war300/NOTAS.md`.
+- Repositorio `Carloswxht/gymbro` (antes `war300`, renombrado por Carlos el 19 oct). Dirección prevista: `gymbro.autonomialab.es` (GitHub Pages). Hoy la app de War300 está en Cloudflare: se quita cuando la nueva funcione.
+- App: `index.html` (una sola página, instalable: `manifest.json`, `sw.js`). Última versión: **v96**, todavía sobre el Supabase propio «War300» (`pvcjolgqegthmudsvvlr`, Supabase Auth). La v97 pasará a `autonomialab-db`.
+
+## Base de datos (carpeta `gymbro`, sufijo `_gymbro`)
+- SQL en `datos/cambios/`. Pruebas en local: `datos/pruebas/replica-local.sql` (copia mínima de `comun` y del login de MultiBar) + `datos/pruebas/2026-10-19-gymbro-carpeta.sql`.
+- Tablas: `ajustes_gymbro` (aspecto, opciones, `registro_abierto`), `socios_gymbro` (rol `socio`/`admin`), `progreso_gymbro`, `entrenos_gymbro` (antes `sesiones`), `ejercicios_personalizados_gymbro`.
+- Cuentas en `comun.usuarios` (una por negocio). Funciones propias de entrar: `entrar_gymbro`, `registrar_gymbro`, `yo_gymbro`, `salir_gymbro`, `cambiar_password_gymbro`, `borrar_mi_cuenta_gymbro`; datos: `negocio_gymbro`, `mis_datos_gymbro`, `guardar_progreso_gymbro`, `mis_entrenos_gymbro`, `guardar_entreno_gymbro`, `guardar_personalizado_gymbro`. Sesiones de 60 días que se alargan al usar la app.
+- Las funciones de MultiBar (`personal_entrar`…) no ven cuentas de Gymbro y al revés (probado).
+
+## Plan (19 oct, con el «sí» de Carlos)
+1. ✅ Bases v9 con Gymbro. ✅ SQL de la carpeta `gymbro` escrito y probado en local (`2026-10-19-gymbro-carpeta.sql`). ✅ **Aplicado en Supabase el 19 oct** (pegado por Carlos): 5 tablas y 16 funciones, huella `0e77c4908058072e79c386bdf4b8598b` idéntica a la copia probada; la web (anon) no ve la carpeta ni los ayudantes.
+2. ✅ **Hecho el 19 oct** (con `execute_sql`, solo inserciones, se puede repetir): negocio `war300` (id 4, tipo `gymbro`, `registro_abierto` encendido, en `productos_contratados`); 2 cuentas con su misma contraseña (hash bcrypt copiado; la de Carlos es ya `carloswxht+war300@gmail.com`), las dos con rol `socio`; 238 filas de progreso, 16 entrenos y 1 ejercicio propio (de `usuarioswxht`). Comprobado con huellas md5: progreso, entrenos y contraseñas idénticos al Supabase «War300». No se copió el ejercicio «Prueba» ni su vídeo (eran de una cuenta ya borrada). **Ojo:** War300 v96 sigue guardando en el Supabase viejo: justo antes de publicar la v97 hay que volver a copiar lo nuevo (el SQL de copia no se guarda en el repositorio porque lleva datos personales y contraseñas cifradas; se rehace leyendo el Supabase viejo).
+3. ✅ **App v97 hecha (19 oct, rama `claude/plataforma-md-file-jwy5sc`, sin publicar)**: sin supabase-js; todo por `api()` → `rpc/*_gymbro` de `autonomialab-db` con la clave publishable; sesión propia en `localStorage` (`gymbro.sesion.<slug>`, 60 días, `yo_gymbro` la alarga; sin señal abre con lo último conocido); negocio por `?g=slug` (por defecto `war300`, único cliente: revisarlo al llegar el segundo); crear cuenta entra directo (sin correo de confirmación); borrar cuenta pide la contraseña; subir vídeo desde el móvil oculto (solo enlace) hasta tener Edge Function; al salir se vacía lo de la cuenta en el móvil y se recarga (antes, otra cuenta en el mismo móvil heredaba los pesos en memoria); arreglado el «¿No tienes cuenta? ¿Ya tienes cuenta?» repetido (venía de la v96); versión visible en Ajustes («Gymbro v97»). Las filas de progreso y entrenos tienen la misma forma que antes (`upsertProgreso`, `selEntrenos`, `guardarEntreno`). **Probado** en Chromium a 390 px contra una copia local (Supabase simulado `datos/pruebas/app/servidor.mjs` + `prueba.cjs`, `prueba2.cjs`): 12 pasos (entrar, error, datos y 16 entrenos, guardar peso, guardar entreno, recargar, ajustes, salir, crear cuenta sin ver datos de otra, ejercicio propio, borrar cuenta) y estadísticas por día, por semana y por ejercicio; sin errores de página. Pendiente: recuperar contraseña por correo (función + Edge Function propias), subida de vídeos y aspecto de cada negocio desde `ajustes_gymbro` (hoy el de War300 está en el código).
+   - **Antes de publicar la v97:** recopiar desde el Supabase «War300» lo entrenado después del 19 oct (la v96 sigue guardando allí) y avisar a Carlos de que entra con `carloswxht+war300@gmail.com`. Ojo: si Cloudflare publica sola la rama `main`, fusionar = publicar.
+4. Panel de plataforma `/plataforma/` (Carlos) y panel del dueño (rol `admin`).
+5. Publicar en `gymbro.autonomialab.es`, aviso en la app vieja, quitar Cloudflare y pausar el Supabase «War300».
