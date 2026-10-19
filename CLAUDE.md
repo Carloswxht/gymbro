@@ -7,7 +7,7 @@
 ## Qué es esto
 - **Gymbro** es el gremio de rutinas de gimnasio de autonomIA Lab (decisión de Carlos, 19 oct). Sin relación con MultiBar: solo comparte la base `autonomialab-db`, la lista de negocios y las tablas de cuentas.
 - **War300 es su primer cliente** (como La Mar de Gambas en MultiBar). Ficha en `datos/clientes/war300/NOTAS.md`.
-- Este repositorio se llama aún `war300`; Carlos lo renombrará a `gymbro`. Dirección prevista: `gymbro.autonomialab.es` (GitHub Pages). Hoy la app de War300 está en Cloudflare: se quita cuando la nueva funcione.
+- Repositorio `Carloswxht/gymbro` (antes `war300`, renombrado por Carlos el 19 oct). Dirección prevista: `gymbro.autonomialab.es` (GitHub Pages). Hoy la app de War300 está en Cloudflare: se quita cuando la nueva funcione.
 - App: `index.html` (una sola página, instalable: `manifest.json`, `sw.js`). Última versión: **v96**, todavía sobre el Supabase propio «War300» (`pvcjolgqegthmudsvvlr`, Supabase Auth). La v97 pasará a `autonomialab-db`.
 
 ## Base de datos (carpeta `gymbro`, sufijo `_gymbro`)
