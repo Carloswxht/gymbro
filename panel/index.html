@@ -6,8 +6,8 @@
 <title>Panel · Gymbro</title>
 <meta name="theme-color" content="#0E1013">
 <meta name="robots" content="noindex">
-<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
-<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/gymbro-192.png">
+<link rel="apple-touch-icon" href="/icons/gymbro-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -25,6 +25,7 @@
   button,input{font:inherit;color:inherit;}
   [hidden]{display:none!important;}
   .envoltorio{max-width:640px;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left));}
+  .logo-gym{display:block;width:52px;height:52px;border-radius:14px;object-fit:cover;margin:0 0 12px;}
   .kicker{font-size:13px;color:var(--text-dim);margin:0 0 2px;letter-spacing:.2px;}
   h1{font-family:var(--titulos);font-size:30px;margin:0;line-height:1.1;}
   h2{font-family:var(--titulos);font-size:17px;margin:0 0 12px;}
@@ -99,6 +100,7 @@
 <div class="envoltorio">
 
   <section id="vEntrar" hidden>
+    <img class="logo-gym" alt="" hidden>
     <p class="kicker" id="eNegocio">Gymbro</p>
     <h1>Panel</h1>
     <div class="campo"><label for="eCorreo">Correo</label><input type="email" id="eCorreo" autocomplete="email"></div>
@@ -110,6 +112,7 @@
   <section id="vPanel" hidden>
     <div class="cabecera">
       <div>
+        <img class="logo-gym" alt="" hidden>
         <p class="kicker" id="pNegocio"></p>
         <h1>Panel</h1>
       </div>
@@ -148,7 +151,7 @@
 <div class="aviso" id="aviso" hidden></div>
 
 <script>
-const VERSION = 100;
+const VERSION = 102;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const FUNC_URL = 'https://dorunbacwnkwdatfscri.supabase.co/functions/v1/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
@@ -407,9 +410,24 @@ async function accion(s, a){
   });
 }
 
+// v102 — logo del gimnasio (el mismo que guarda la app en el móvil; solo
+// se baja de nuevo si cambió su huella).
+const ASPECTO_KEY = 'gymbro.aspecto.' + NEGOCIO;
+function ponerLogo(logo){
+  document.querySelectorAll('.logo-gym').forEach(img => { img.hidden = !logo; if(logo) img.src = logo; });
+  document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach(l => l.href = logo || '/icons/gymbro-192.png');
+}
+async function cargarLogo(n){
+  let g = null;
+  try{ g = JSON.parse(localStorage.getItem(ASPECTO_KEY)); }catch(e){}
+  if(!n.logo_v){ ponerLogo(null); return; }
+  if(g && g.logo_v === n.logo_v && g.logo){ ponerLogo(g.logo); return; }
+  try{ ponerLogo((await api('logo_gymbro', { p_slug: NEGOCIO })).logo); }catch(e){}
+}
+
 // ---- Arranque ----
 (async ()=>{
-  try{ const n = await api('negocio_gymbro', { p_slug: NEGOCIO }); $('eNegocio').textContent = n.nombre; }catch(e){}
+  try{ const n = await api('negocio_gymbro', { p_slug: NEGOCIO }); $('eNegocio').textContent = n.nombre; cargarLogo(n); }catch(e){}
   if(token) await cargar(); else mostrarEntrar('');
 })();
 </script>

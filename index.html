@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>War300</title>
+<title>Gymbro</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0E1013">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="War300">
+<meta name="apple-mobile-web-app-title" content="Gymbro">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -1045,6 +1045,8 @@
   #authGate.hidden{display:none;}
   .auth-box{width:100%;max-width:360px;}
   .auth-box .kicker{margin-bottom:6px;}
+  .auth-logo{display:block;width:64px;height:64px;border-radius:16px;object-fit:cover;margin:0 0 14px;}
+  .auth-logo[hidden]{display:none;}
   .auth-box h1{margin-bottom:26px;font-size:28px;}
   .auth-confirm{
     display:none;
@@ -1406,7 +1408,8 @@
 
   <div id="authGate">
     <div class="auth-box">
-      <p class="kicker">War300</p>
+      <img class="auth-logo" id="authLogo" alt="" hidden>
+      <p class="kicker marca-nombre"></p>
       <h1 id="authTitle">Entrar</h1>
       <div class="auth-field">
         <label>Correo</label>
@@ -1586,7 +1589,7 @@
   </div>
 
   <div class="masthead" id="masthead">
-    <p class="kicker">War300</p>
+    <p class="kicker marca-nombre"></p>
   </div>
 
   <div id="view-home">
@@ -3569,7 +3572,7 @@ function renderExecList(){
         <p>${s && s.count < execList.length ? `Cerraste la sesión con ${s.count} de ${execList.length} ejercicios hechos.` : 'Terminaste todos los ejercicios que elegiste para hoy.'}</p>
         ${extraHtml}
         <button id="execDoneHome" style="margin-top:22px;width:100%;background:var(--text);color:var(--ink);border:none;font-family:'Archivo',sans-serif;font-weight:700;font-size:15px;padding:15px;border-radius:12px;cursor:pointer;">Volver al inicio</button>
-        <button id="execDoneShare" style="margin-top:10px;width:100%;background:transparent;color:var(--text-dim);border:1px solid var(--line);font-family:'Archivo',sans-serif;font-weight:700;font-size:13.5px;padding:13px;border-radius:12px;cursor:pointer;">Compartir War300</button>
+        <button id="execDoneShare" style="margin-top:10px;width:100%;background:transparent;color:var(--text-dim);border:1px solid var(--line);font-family:'Archivo',sans-serif;font-weight:700;font-size:13.5px;padding:13px;border-radius:12px;cursor:pointer;">Compartir ${escMarca(gimnasio.nombre)}</button>
       </div>`;
     document.getElementById('execDoneHome').addEventListener('click', goHome);
     document.getElementById('execDoneShare').addEventListener('click', shareWar300);
@@ -4947,7 +4950,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // Todo pasa por funciones de la base (las tablas están cerradas a la web).
 // La sesión es un token propio guardado en el móvil; vale 60 días y se
 // alarga sola al abrir la app.
-const APP_VERSION = 100;
+const APP_VERSION = 102;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
 // Negocio de Gymbro: ?g=slug en la dirección. Hoy solo existe War300, que es
@@ -5308,13 +5311,14 @@ async function loadState(){
     // sub-músculo donde el usuario se quedó, ya marcado si venía marcado.
     clampChecklistStep();
     renderChecklistBoard();
-    if(themeRaw && themeRaw.startsWith('custom:')){
-      const custom = customThemes.find(c => 'custom:'+c.id === themeRaw);
-      if(custom) applyCustomTheme(custom, true);
-      else applyTheme('theme-dark', true);
-    } else if(themeRaw){
-      applyTheme(themeRaw, true);
-    }
+    // v102 — sin tema elegido (o si era el del gimnasio, o una paleta ya
+    // borrada) se usa el tema por defecto de su gimnasio.
+    temaDelUsuario = !!themeRaw && themeRaw !== TEMA_GIMNASIO;
+    const custom = temaDelUsuario && themeRaw.startsWith('custom:')
+      ? customThemes.find(c => 'custom:'+c.id === themeRaw) : null;
+    if(custom) applyCustomTheme(custom, true);
+    else if(temaDelUsuario && !themeRaw.startsWith('custom:')) applyTheme(themeRaw, true);
+    else aplicarTemaGimnasio(true);
   }catch(e){
     showToast('No se pudo cargar tu progreso.');
   }finally{
@@ -5401,19 +5405,21 @@ document.getElementById('splitUpperLowerBtn').addEventListener('click', ()=>{
   showToast('Torso/Pierna: próximamente 🚧');
 });
 async function shareWar300(){
+  const lema = gimnasio.aspecto.lema;
+  const url = CON_G ? location.origin + '/?g=' + encodeURIComponent(NEGOCIO) : location.origin;
   const shareData = {
-    title: 'War300',
-    text: 'La competencia es contra ti mismo. Únete a War300.',
-    url: location.origin,
+    title: gimnasio.nombre,
+    text: (lema ? lema + ' ' : '') + 'Únete a ' + gimnasio.nombre + '.',
+    url,
   };
   try{
     if(navigator.share){
       await navigator.share(shareData);
     } else if(navigator.clipboard){
-      await navigator.clipboard.writeText(location.origin);
+      await navigator.clipboard.writeText(url);
       showToast('Link copiado ✓');
     } else {
-      showToast('Comparte: ' + location.origin);
+      showToast('Comparte: ' + url);
     }
   }catch(e){
     // el usuario canceló el share — no hacer nada
@@ -5533,7 +5539,15 @@ function nextTheme(){
 function renderThemeGrid(){
   const grid = document.getElementById('themeGrid');
   if(!grid) return;
-  grid.innerHTML = THEMES.map(t=>`
+  // v102 — si el gimnasio tiene colores propios, salen los primeros.
+  const g = coloresGimnasio();
+  grid.innerHTML = (g ? `
+    <div class="theme-swatch ${currentThemeId === TEMA_GIMNASIO ? 'active':''}" data-gimnasio="1">
+      <div class="sw-dots">
+        ${[g.ink, g.day1, g.day2, g.day3].map(c=>`<span class="sw-dot" style="background:${c};border:1px solid rgba(255,255,255,.15);"></span>`).join('')}
+      </div>
+      <p class="sw-name">${escMarca(gimnasio.nombre)}</p>
+    </div>` : '') + THEMES.map(t=>`
     <div class="theme-swatch ${t.id === currentThemeId ? 'active':''}" data-theme="${t.id}">
       <div class="sw-dots">
         ${t.colors.map(c=>`<span class="sw-dot" style="background:${c};border:1px solid rgba(255,255,255,.15);"></span>`).join('')}
@@ -5541,7 +5555,7 @@ function renderThemeGrid(){
       <p class="sw-name">${t.name}</p>
     </div>`).join('');
   grid.querySelectorAll('.theme-swatch').forEach(sw=>{
-    sw.addEventListener('click', ()=> applyTheme(sw.dataset.theme));
+    sw.addEventListener('click', ()=> sw.dataset.gimnasio ? aplicarTemaGimnasio() : applyTheme(sw.dataset.theme));
   });
 }
 
@@ -5651,7 +5665,7 @@ function deleteCustomTheme(id){
   const wasActive = currentThemeId === 'custom:' + id;
   customThemes = customThemes.filter(c => c.id !== id);
   saveCustomThemesList();
-  if(wasActive) applyTheme('theme-dark');
+  if(wasActive) aplicarTemaGimnasio();
   else renderCustomGrid();
   showToast('Paleta borrada.');
 }
@@ -5792,6 +5806,97 @@ document.getElementById('saveCustomBtn').addEventListener('click', ()=>{
   advancedTouched = false;
   showToast('Paleta guardada.');
 });
+
+// ---- Aspecto del gimnasio (v102) ----
+// Nombre, frase, colores por defecto y logo salen de la base (los cambia
+// Carlos desde /plataforma/). Se guardan en el móvil para pintar al
+// instante y sin señal; luego se piden de nuevo por si cambiaron. El logo
+// pesa: solo se baja cuando cambia su huella (logo_v).
+const ASPECTO_KEY = 'gymbro.aspecto.' + NEGOCIO;
+const CON_G = new URLSearchParams(location.search).has('g');
+const LOGO_GYMBRO = '/icons/gymbro-512.png';
+const TEMA_GIMNASIO = 'custom:gimnasio';
+let gimnasio = { nombre: 'Gymbro', aspecto: {}, logo_v: null, logo: null };
+let temaDelUsuario = false;
+try{
+  const g = JSON.parse(localStorage.getItem(ASPECTO_KEY));
+  if(g && g.nombre) gimnasio = { ...gimnasio, ...g, aspecto: g.aspecto || {} };
+}catch(e){}
+
+function escMarca(t){
+  return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function coloresGimnasio(){
+  const a = gimnasio.aspecto || {};
+  return a.tema === 'propio' && a.colores ? a.colores : null;
+}
+function aplicarTemaGimnasio(skipSave){
+  const c = coloresGimnasio();
+  if(c) applyCustomTheme({ id: 'gimnasio', name: gimnasio.nombre, ink: c.ink, day1: c.day1, day2: c.day2, day3: c.day3 }, skipSave);
+  else applyTheme(gimnasio.aspecto.tema || 'theme-dark', skipSave);
+}
+function fondoGimnasio(){
+  const c = coloresGimnasio();
+  if(c) return c.ink;
+  const t = THEMES.find(x => x.id === gimnasio.aspecto.tema);
+  return t ? t.colors[0] : '#0E1013';
+}
+function ponerEnlace(rel, href){
+  let l = document.querySelector(`link[rel="${rel}"]`);
+  if(!l){ l = document.createElement('link'); l.rel = rel; document.head.appendChild(l); }
+  if(l.getAttribute('href') !== href) l.setAttribute('href', href);
+}
+let manifestUrl = null;
+function pintarMarca(){
+  const nombre = gimnasio.nombre;
+  document.title = nombre;
+  document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', nombre);
+  document.querySelectorAll('.marca-nombre').forEach(el => { el.textContent = nombre; });
+  const logo = gimnasio.logo || LOGO_GYMBRO;
+  const authLogo = document.getElementById('authLogo');
+  authLogo.hidden = !gimnasio.logo;
+  if(gimnasio.logo && authLogo.getAttribute('src') !== logo) authLogo.src = logo;
+  const btnCompartir = document.getElementById('execDoneShare');
+  if(btnCompartir) btnCompartir.textContent = 'Compartir ' + nombre;
+  // Sin ?g= se abre el gimnasio por defecto, que usa manifest.json y los
+  // iconos de la web. Con ?g= el icono y el nombre al instalar son los de
+  // su gimnasio y la app instalada vuelve a abrir en él.
+  if(!CON_G) return;
+  ponerEnlace('icon', logo);
+  ponerEnlace('apple-touch-icon', logo);
+  const fondo = fondoGimnasio();
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', fondo);
+  const abs = u => new URL(u, location.origin).href;
+  const manifest = {
+    name: nombre, short_name: nombre, description: gimnasio.aspecto.lema || '',
+    start_url: abs('/?g=' + encodeURIComponent(NEGOCIO)), scope: abs('/'),
+    display: 'standalone', background_color: fondo, theme_color: fondo, orientation: 'portrait',
+    icons: [{ src: abs(logo), sizes: '512x512', type: 'image/png', purpose: 'any' }],
+  };
+  if(manifestUrl) URL.revokeObjectURL(manifestUrl);
+  manifestUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+  ponerEnlace('manifest', manifestUrl);
+}
+async function cargarAspecto(){
+  try{
+    const n = await api('negocio_gymbro', { p_slug: NEGOCIO });
+    const g = { nombre: n.nombre || 'Gymbro', aspecto: n.aspecto || {}, logo_v: n.logo_v || null, logo: null };
+    if(g.logo_v){
+      g.logo = gimnasio.logo_v === g.logo_v && gimnasio.logo
+        ? gimnasio.logo : (await api('logo_gymbro', { p_slug: NEGOCIO })).logo;
+    }
+    const temaCambia = JSON.stringify(g.aspecto.tema) !== JSON.stringify(gimnasio.aspecto.tema)
+      || JSON.stringify(g.aspecto.colores) !== JSON.stringify(gimnasio.aspecto.colores);
+    gimnasio = g;
+    try{ localStorage.setItem(ASPECTO_KEY, JSON.stringify(g)); }catch(e){}
+    pintarMarca();
+    if(temaCambia && !temaDelUsuario) aplicarTemaGimnasio(true);
+    else renderThemeGrid();
+  }catch(e){ /* sin señal se queda con lo guardado en el móvil */ }
+}
+pintarMarca();
+aplicarTemaGimnasio(true);
+cargarAspecto();
 
 // ---- Login / registro ----
 const authGate = document.getElementById('authGate');
