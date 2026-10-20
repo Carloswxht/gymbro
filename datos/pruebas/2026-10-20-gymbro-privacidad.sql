@@ -12,6 +12,7 @@ insert into gymbro.socios_gymbro (usuario_id,negocio_id) select id,negocio_id fr
 -- (otras pruebas cambian la contraseña de Carlos: se deja la de prueba)
 update comun.usuarios set password_hash = extensions.crypt('clave-prueba-1', extensions.gen_salt('bf', 4)), failed_attempts = 0, locked_until = null
  where email = 'carloswxht+war300@gmail.com';
+update comun.negocios set titular = null, nif = null, domicilio_fiscal = null, correo_legal = null, telefono_legal = null where slug = 'war300';
 select id as iw from comun.negocios where slug = 'war300' \gset
 select id as io from comun.negocios where slug = 'gym-otro' \gset
 select id as ib from comun.negocios where slug = 'bar-ejemplo' \gset
@@ -27,12 +28,13 @@ select legal_gymbro('no-existe');
 \echo '3. estado sin sesión: SESION_CADUCADA; con sesión: sin aceptar'
 select legal_estado_gymbro('x');
 select legal_estado_gymbro(:'ta')->>'aceptada';
-\echo '4. aceptar una versión vieja o inventada: VERSION_NO_VALIDA'
+\echo '4. aceptar una versión vieja (la primera, 2026-10-20) o inventada: VERSION_NO_VALIDA'
+select aceptar_legal_gymbro(:'ta', '2026-10-20');
 select aceptar_legal_gymbro(:'ta', '2020-01-01');
 select aceptar_legal_gymbro(:'ta', null);
 \echo '5. aceptar la vigente (dos veces no duplica); la otra socia sigue sin aceptar'
-select aceptar_legal_gymbro(:'ta', '2026-10-20')->>'aceptada';
-select aceptar_legal_gymbro(:'ta', '2026-10-20')->>'aceptada';
+select aceptar_legal_gymbro(:'ta', '2026-10-20.2')->>'aceptada';
+select aceptar_legal_gymbro(:'ta', '2026-10-20.2')->>'aceptada';
 select legal_estado_gymbro(:'tob')->>'aceptada' otra_sin_aceptar;
 reset role; select count(*) filas_carlos, min(negocio_id) = :iw negocio_bien from gymbro.consentimientos_gymbro where usuario_id = (select id from comun.usuarios where email = 'carloswxht+war300@gmail.com'); set role anon;
 \echo '6. datos legales: sin plataforma (SESION_CADUCADA), bar (GIMNASIO_NO_VALIDO), NIF raro (DATOS_NO_VALIDOS), correo malo (EMAIL_NO_VALIDO)'

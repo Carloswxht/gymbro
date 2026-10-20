@@ -27,8 +27,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Gymbro">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/fuentes/fuentes.css?v=105">
 <style>
   :root{
     --ink:#0E1013;
@@ -1141,6 +1140,13 @@
   .auth-acepto input{width:20px;height:20px;margin:0;flex:none;accent-color:var(--day1);}
   .auth-acepto a, .auth-legal a{color:var(--text);}
   .auth-legal{text-align:center;margin-top:18px;font-size:12px;}
+  /* v105 — pie con la versión y la firma, como en la carta de MultiBar */
+  .pie-app{text-align:center;padding:30px 16px 6px;color:var(--text-dim);}
+  .pie-app .pie-version{font-size:11px;opacity:.7;letter-spacing:.06em;}
+  .pie-app .pie-firma{margin-top:2px;font-size:10.5px;letter-spacing:.04em;}
+  .pie-app .pie-firma a{display:inline-block;padding:6px 8px;color:var(--text-dim);text-decoration:none;}
+  .pie-app .pie-firma b{font-weight:600;color:var(--day1);text-decoration:underline;text-underline-offset:2px;}
+  .auth-box .pie-app{padding-top:22px;}
   .auth-legal a{color:var(--text-dim);}
   .legal-gate{position:fixed;inset:0;z-index:3000;background:var(--ink);display:flex;align-items:center;justify-content:center;padding:24px 20px;overflow-y:auto;}
   .legal-gate[hidden]{display:none;}
@@ -1469,6 +1475,10 @@
       <p class="auth-switch" id="authSwitch">¿No tienes cuenta? <span>Crear una</span></p>
       <p class="auth-msg" id="authMsg"></p>
       <p class="auth-legal"><a class="legal-link" href="/legal/" target="_blank" rel="noopener">Privacidad y aviso legal</a></p>
+      <div class="pie-app">
+        <div class="pie-version"></div>
+        <div class="pie-firma"><a href="https://www.autonomialab.es" target="_blank" rel="noopener">Creado por <b>autonomIA Lab</b></a></div>
+      </div>
     </div>
 
     <div class="auth-confirm" id="authConfirm">
@@ -1823,6 +1833,11 @@
     <div id="statsPeriodContent"></div>
   </div>
 
+
+  <footer class="pie-app" id="pieApp">
+    <div class="pie-version"></div>
+    <div class="pie-firma"><a href="https://www.autonomialab.es" target="_blank" rel="noopener">Creado por <b>autonomIA Lab</b></a></div>
+  </footer>
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-sheet">
@@ -5002,7 +5017,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // Todo pasa por funciones de la base (las tablas están cerradas a la web).
 // La sesión es un token propio guardado en el móvil; vale 60 días y se
 // alarga sola al abrir la app.
-const APP_VERSION = 104;
+const APP_VERSION = 105;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
 // Negocio de Gymbro: ?g=slug en la dirección (v103: sin ?g= ni se llega
@@ -5093,6 +5108,7 @@ async function leerMisDatos(){
 // consultas de cada pantalla filtran aquí.
 let entrenosCache = null;
 document.getElementById('appVersion').textContent = 'Gymbro v' + APP_VERSION;
+document.querySelectorAll('.pie-version').forEach(el => { el.textContent = 'Gymbro v' + APP_VERSION; });
 async function selEntrenos({ orden = 'asc', por = 'fecha', limite = null, desde = null, conDia = false } = {}){
   try{
     if(!entrenosCache) entrenosCache = await api('mis_entrenos_gymbro', { p_token: sesionToken });
