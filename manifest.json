@@ -1,7 +1,7 @@
 {
-  "name": "War300",
-  "short_name": "War300",
-  "description": "La competencia es contra ti mismo.",
+  "name": "Gymbro",
+  "short_name": "Gymbro",
+  "description": "La app de rutinas de tu gimnasio.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -10,22 +10,16 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/icons/gymbro-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/gymbro-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-512-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ]
 }

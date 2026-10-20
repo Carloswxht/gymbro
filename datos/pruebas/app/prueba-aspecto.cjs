@@ -1,4 +1,4 @@
-// Prueba del aspecto de cada gimnasio (v102) contra el Supabase simulado.
+// Prueba del aspecto de cada gimnasio (v102; v103: War300 ya va siempre con ?g=) contra el Supabase simulado.
 // Necesita: War300 (Carlos, clave-prueba-1) con el SQL de aspecto aplicado;
 // gym-luna (registro libre; dueña luna@ejemplo.test, clave-luna-1, admin) y
 // gym-sin (sin aspecto) recién creados; y la cuenta de plataforma de replica-local.
@@ -42,13 +42,13 @@ async function contexto(browser){
   });
   fs.writeFileSync(logoPrueba, Buffer.from(datosLogo.split(',')[1], 'base64'));
 
-  await paso('1 War300 sin ?g=: nombre, frase, tema Original, su icono y manifest.json de siempre', async () => {
-    await page.goto(B + '/'); await page.waitForTimeout(1500); await cap('a1-war300-entrar');
+  await paso('1 War300: nombre, frase, tema Original, su icono y su manifiesto', async () => {
+    await page.goto(B + '/?g=war300'); await page.waitForTimeout(1500); await cap('a1-war300-entrar');
     if ((await kicker()) !== 'War300') throw new Error('kicker ' + await kicker());
     if ((await page.title()) !== 'War300') throw new Error('título ' + await page.title());
     if ((await ink()) !== '#0E1013') throw new Error('tema ' + await ink());
-    if (await page.getAttribute('link[rel=manifest]', 'href') !== '/manifest.json') throw new Error('manifest cambiado');
-    if (await page.getAttribute('link[rel=apple-touch-icon]', 'href') !== '/icons/icon-192.png') throw new Error('icono cambiado');
+    if (!(await page.getAttribute('link[rel=manifest]', 'href')).startsWith('blob:')) throw new Error('manifest fijo');
+    if (await page.getAttribute('link[rel=apple-touch-icon]', 'href') !== '/icons/icon-512.png') throw new Error('icono ' + await page.getAttribute('link[rel=apple-touch-icon]', 'href'));
     if (await page.getAttribute('#authLogo', 'src') !== '/icons/icon-512.png') throw new Error('logo ' + await page.getAttribute('#authLogo', 'src'));
   });
   await paso('2 Carlos entra en War300: cabecera War300 y mismo tema', async () => {
@@ -135,7 +135,7 @@ async function contexto(browser){
     if (!(await page.getAttribute('#vPanel .logo-gym', 'src') || '').startsWith('data:image/png')) throw new Error('logo');
   });
   await paso('11 War300 sigue igual después de cambiar otro gimnasio', async () => {
-    await page.goto(B + '/'); await page.waitForTimeout(1500);
+    await page.goto(B + '/?g=war300'); await page.waitForTimeout(1500);
     if ((await kicker()) !== 'War300' || (await ink()) !== '#0E1013') throw new Error('War300 cambió');
   });
   console.log(errores.length ? 'ERRORES DE PÁGINA: ' + errores.join(' | ') : 'sin errores de página');

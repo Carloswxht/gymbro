@@ -19,7 +19,7 @@ const OUT = process.argv[2];
   const cap = n => page.screenshot({ path: `${OUT}/${n}.png` });
   const gateVisible = () => page.evaluate(() => !document.getElementById('authGate').classList.contains('hidden'));
 
-  await page.goto('http://127.0.0.1:8091/');
+  await page.goto('http://127.0.0.1:8091/?g=war300');
   await page.waitForTimeout(800);
   await paso('1 sin sesión sale la entrada', async () => { if (!await gateVisible()) throw new Error('no'); await cap('01-entrar'); });
   await paso('2 contraseña mal', async () => {
@@ -50,7 +50,7 @@ const OUT = process.argv[2];
     await page.reload(); await page.waitForTimeout(2500); if (await gateVisible()) throw new Error('pidió entrar'); await cap('04-recargar');
   });
   await paso('8 ajustes con versión', async () => {
-    const v = await page.textContent('#appVersion'); if (v !== 'Gymbro v102') throw new Error(v);
+    const v = await page.textContent('#appVersion'); if (v !== 'Gymbro v103') throw new Error(v);
     await page.evaluate(() => document.getElementById('settingsOverlay').classList.add('open')); await page.waitForTimeout(400);
     await page.evaluate(() => { const s = document.querySelector('#settingsOverlay .settings-sheet'); s.scrollTop = s.scrollHeight; }); await page.waitForTimeout(300); await cap('05-ajustes');
     await page.evaluate(() => document.getElementById('settingsOverlay').classList.remove('open'));

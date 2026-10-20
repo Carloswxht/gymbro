@@ -3,11 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+// v103 — Sin ?g= no hay gimnasio: si este móvil ya conoce uno (el último
+// abierto o una sesión guardada) se va a él; si no, a la página de Gymbro.
+(function(){
+  if(new URLSearchParams(location.search).get('g')) return;
+  var g = null;
+  try{
+    g = localStorage.getItem('gymbro.ultimo');
+    for(var i = 0; !g && i < localStorage.length; i++){
+      var m = /^gymbro\.sesion\.([a-z0-9-]+)$/.exec(localStorage.key(i) || '');
+      if(m) g = m[1];
+    }
+  }catch(e){}
+  location.replace(g ? '/?g=' + encodeURIComponent(g) + location.hash : '/inicio/');
+})();
+</script>
 <title>Gymbro</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0E1013">
-<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
-<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/gymbro-192.png">
+<link rel="apple-touch-icon" href="/icons/gymbro-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Gymbro">
@@ -4950,12 +4966,12 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // Todo pasa por funciones de la base (las tablas están cerradas a la web).
 // La sesión es un token propio guardado en el móvil; vale 60 días y se
 // alarga sola al abrir la app.
-const APP_VERSION = 102;
+const APP_VERSION = 103;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
-// Negocio de Gymbro: ?g=slug en la dirección. Hoy solo existe War300, que es
-// el de por defecto (la app instalada abre sin parámetros).
-const NEGOCIO = (new URLSearchParams(location.search).get('g') || 'war300').toLowerCase();
+// Negocio de Gymbro: ?g=slug en la dirección (v103: sin ?g= ni se llega
+// aquí; el script del principio lleva a un gimnasio o a /inicio/).
+const NEGOCIO = (new URLSearchParams(location.search).get('g') || '').toLowerCase();
 const SESION_KEY = 'gymbro.sesion.' + NEGOCIO;
 let currentUser = null;
 let sesionToken = null;
@@ -5406,7 +5422,7 @@ document.getElementById('splitUpperLowerBtn').addEventListener('click', ()=>{
 });
 async function shareWar300(){
   const lema = gimnasio.aspecto.lema;
-  const url = CON_G ? location.origin + '/?g=' + encodeURIComponent(NEGOCIO) : location.origin;
+  const url = location.origin + '/?g=' + encodeURIComponent(NEGOCIO);
   const shareData = {
     title: gimnasio.nombre,
     text: (lema ? lema + ' ' : '') + 'Únete a ' + gimnasio.nombre + '.',
@@ -5813,7 +5829,6 @@ document.getElementById('saveCustomBtn').addEventListener('click', ()=>{
 // instante y sin señal; luego se piden de nuevo por si cambiaron. El logo
 // pesa: solo se baja cuando cambia su huella (logo_v).
 const ASPECTO_KEY = 'gymbro.aspecto.' + NEGOCIO;
-const CON_G = new URLSearchParams(location.search).has('g');
 const LOGO_GYMBRO = '/icons/gymbro-512.png';
 const TEMA_GIMNASIO = 'custom:gimnasio';
 let gimnasio = { nombre: 'Gymbro', aspecto: {}, logo_v: null, logo: null };
@@ -5858,10 +5873,8 @@ function pintarMarca(){
   if(gimnasio.logo && authLogo.getAttribute('src') !== logo) authLogo.src = logo;
   const btnCompartir = document.getElementById('execDoneShare');
   if(btnCompartir) btnCompartir.textContent = 'Compartir ' + nombre;
-  // Sin ?g= se abre el gimnasio por defecto, que usa manifest.json y los
-  // iconos de la web. Con ?g= el icono y el nombre al instalar son los de
-  // su gimnasio y la app instalada vuelve a abrir en él.
-  if(!CON_G) return;
+  // El icono y el nombre al instalar son los de su gimnasio y la app
+  // instalada vuelve a abrir en él.
   ponerEnlace('icon', logo);
   ponerEnlace('apple-touch-icon', logo);
   const fondo = fondoGimnasio();
@@ -5888,11 +5901,20 @@ async function cargarAspecto(){
     const temaCambia = JSON.stringify(g.aspecto.tema) !== JSON.stringify(gimnasio.aspecto.tema)
       || JSON.stringify(g.aspecto.colores) !== JSON.stringify(gimnasio.aspecto.colores);
     gimnasio = g;
-    try{ localStorage.setItem(ASPECTO_KEY, JSON.stringify(g)); }catch(e){}
+    try{
+      localStorage.setItem(ASPECTO_KEY, JSON.stringify(g));
+      localStorage.setItem('gymbro.ultimo', NEGOCIO);
+    }catch(e){}
     pintarMarca();
     if(temaCambia && !temaDelUsuario) aplicarTemaGimnasio(true);
     else renderThemeGrid();
-  }catch(e){ /* sin señal se queda con lo guardado en el móvil */ }
+  }catch(e){
+    // Gimnasio que no existe o de baja: no se vuelve a abrir solo. Sin
+    // señal se queda con lo guardado en el móvil.
+    if(e.message === 'NEGOCIO_NO_VALIDO'){
+      try{ if(localStorage.getItem('gymbro.ultimo') === NEGOCIO) localStorage.removeItem('gymbro.ultimo'); }catch(e2){}
+    }
+  }
 }
 pintarMarca();
 aplicarTemaGimnasio(true);

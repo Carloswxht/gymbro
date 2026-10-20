@@ -1,4 +1,4 @@
-// Service worker de War300 — estrategia "network-first" con caché de respaldo.
+// Service worker de Gymbro — estrategia "network-first" con caché de respaldo.
 // Objetivo: que la app siga abriendo con mala señal de gimnasio, sin bloquear
 // las actualizaciones (siempre intenta la red primero y solo cae al caché
 // guardado si la red falla).
