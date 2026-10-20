@@ -103,7 +103,7 @@ async function contexto(browser){
   });
   await paso('7 socia nueva de Gym Luna: entra con los colores del gimnasio; en Ajustes salen primero', async () => {
     await page.click('#authSwitch'); await page.fill('#authEmail', 'socia-luna@ejemplo.test'); await page.fill('#authPass', 'clave-socia-1'); await page.fill('#authPass2', 'clave-socia-1');
-    await page.click('#authSubmit'); await page.waitForTimeout(2500); await cap('a7-luna-dentro');
+    await page.check('#authAceptoCheck'); await page.click('#authSubmit'); await page.waitForTimeout(2500); await cap('a7-luna-dentro');
     if ((await page.textContent('#masthead .marca-nombre')) !== 'Luna Fitness') throw new Error('cabecera');
     if ((await ink()) !== '#14123A') throw new Error('tema ' + await ink());
     await page.evaluate(() => { renderThemeGrid(); document.getElementById('settingsOverlay').classList.add('open'); }); await page.waitForTimeout(400);
