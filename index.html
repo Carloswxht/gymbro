@@ -4947,7 +4947,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // Todo pasa por funciones de la base (las tablas están cerradas a la web).
 // La sesión es un token propio guardado en el móvil; vale 60 días y se
 // alarga sola al abrir la app.
-const APP_VERSION = 99;
+const APP_VERSION = 100;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
 // Negocio de Gymbro: ?g=slug en la dirección. Hoy solo existe War300, que es
@@ -5900,7 +5900,8 @@ document.getElementById('authConfirmBack').addEventListener('click', ()=>{
 });
 
 authSubmit.addEventListener('click', async ()=>{
-  const email = authEmail.value.trim();
+  // v100 — el dictado a veces añade un punto al final del correo («…@gmail.com.»).
+  const email = authEmail.value.trim().replace(/\.+$/, '');
   const password = authPass.value;
   if(authMode === 'reset') return guardarContrasenaNueva();
   if(/\s/.test(email)){ setAuthMsg('El correo tiene un espacio: revísalo.', true); return; }

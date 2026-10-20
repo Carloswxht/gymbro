@@ -148,7 +148,7 @@
 <div class="aviso" id="aviso" hidden></div>
 
 <script>
-const VERSION = 99;
+const VERSION = 100;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const FUNC_URL = 'https://dorunbacwnkwdatfscri.supabase.co/functions/v1/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
@@ -210,7 +210,7 @@ function mostrarEntrar(msg, error){
   $('eMsg').textContent = msg || ''; $('eMsg').classList.toggle('error', !!error);
 }
 $('eEntrar').addEventListener('click', async ()=>{
-  const email = $('eCorreo').value.trim(), clave = $('eClave').value;
+  const email = $('eCorreo').value.trim().replace(/\.+$/, ''), clave = $('eClave').value;
   if(/\s/.test(email)){ mostrarEntrar('El correo tiene un espacio: revísalo.', true); return; }
   if(!email || !clave){ mostrarEntrar('Completa correo y contraseña.', true); return; }
   $('eMsg').textContent = 'Un momento...'; $('eMsg').classList.remove('error');
@@ -331,7 +331,7 @@ $('bAlta').addEventListener('click', ()=>{
     <p class="mensaje" id="aMsg"></p>`);
   $('aNombre').focus();
   $('aGuardar').addEventListener('click', async ()=>{
-    const nombre = $('aNombre').value.trim(), email = $('aCorreo').value.trim();
+    const nombre = $('aNombre').value.trim(), email = $('aCorreo').value.trim().replace(/\.+$/, ''); // el dictado añade a veces un punto final
     const msg = (t, err) => { $('aMsg').textContent = t; $('aMsg').classList.toggle('error', !!err); };
     if(!nombre){ msg('Falta el nombre.', true); return; }
     if(/\s/.test(email) || !/^[^@]+@[^@]+\.[^@]+$/.test(email)){ msg('Revisa el correo: no parece válido.', true); return; }
