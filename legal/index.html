@@ -8,8 +8,8 @@
 <title>Privacidad y aviso legal</title>
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/gymbro-192.png">
 <style>
-  /* Privacidad y aviso legal de cada gimnasio (v104). Letra del sistema
-     (sin Google Fonts: esta página no manda datos a nadie más). */
+  /* Privacidad y aviso legal de cada gimnasio (v104; v105 sin Google Fonts
+     en la app). Letra del sistema: esta página no manda datos a nadie más. */
   :root{ --ink:#0E1013; --panel:#181B20; --line:#2B3038; --text:#F2F1EC; --text-dim:#9AA0AA; --aviso:#FFB347; }
   *{ box-sizing:border-box; }
   html,body{ margin:0; background:var(--ink); color:var(--text); font:15.5px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; -webkit-text-size-adjust:100%; }
@@ -37,13 +37,13 @@
 <script>
 // Versión del texto: la misma que privado.version_legal_gymbro() en la base.
 // Si se cambia el texto, subir las dos (todos los socios lo vuelven a aceptar).
-const VERSION_TEXTO = '2026-10-20';
+const VERSION_TEXTO = '2026-10-20.2';
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
 const SLUG = (new URLSearchParams(location.search).get('g') || '').toLowerCase();
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dato = v => v ? esc(v) : '<span class="pendiente">pendiente</span>';
-const fecha = v => new Date(v + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
+const fecha = v => new Date(v.slice(0, 10) + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
 
 function ficha(d, conTelefono){
   return `<div class="ficha">
@@ -96,9 +96,8 @@ function textoGimnasio(l){
       <li><b>Supabase</b>: la base de datos, con servidores en Fráncfort (Unión Europea).</li>
       <li><b>Resend</b>: envía los correos de invitación y de contraseña (solo tu correo y el enlace).</li>
       <li><b>GitHub Pages</b>: sirve las páginas de la app (no recibe tus datos de entrenamiento).</li>
-      <li><b>Google Fonts</b>: las letras de la app; tu navegador las descarga de Google.</li>
     </ul>
-    <p>Algunos de estos servicios son de empresas de Estados Unidos; se usan con las garantías previstas por la ley europea (cláusulas contractuales tipo o el Marco de Privacidad de Datos UE-EE. UU.). No vendemos ni cedemos tus datos a nadie más.</p>
+    <p>Resend y GitHub son empresas de Estados Unidos; se usan con las garantías previstas por la ley europea (cláusulas contractuales tipo o el Marco de Privacidad de Datos UE-EE. UU.). No vendemos ni cedemos tus datos a nadie más.</p>
 
     <h2>6. Tus derechos</h2>
     <p>Puedes pedir ver, corregir, borrar o llevarte tus datos, oponerte a su uso o limitarlo, escribiendo a ${contacto}. Si crees que no se respetan, puedes reclamar ante la <a href="https://www.aepd.es" target="_blank" rel="noopener">Agencia Española de Protección de Datos</a>.</p>
