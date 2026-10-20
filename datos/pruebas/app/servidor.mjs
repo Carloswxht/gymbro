@@ -3,7 +3,7 @@ import http from 'node:http'; import fs from 'node:fs'; import path from 'node:p
 const RAIZ = process.argv[2], PUERTO = 8091;
 let ultimoEnlace = null;
 const pool = new pg.Pool({ host: process.env.PGHOST, port: 5445, user: 'postgres', database: 'prueba' }); pool.on('error', e => console.error('pool', e.message));
-const tipos = { '.html':'text/html', '.js':'text/javascript', '.json':'application/json', '.png':'image/png', '.mp4':'video/mp4' };
+const tipos = { '.html':'text/html', '.js':'text/javascript', '.json':'application/json', '.png':'image/png', '.mp4':'video/mp4', '.css':'text/css', '.woff2':'font/woff2' };
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const m = url.pathname.match(/^\/rest\/v1\/rpc\/([a-z_]+)$/);
