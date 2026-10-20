@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark">
 <title>Plataforma · Gymbro</title>
-<link rel="stylesheet" href="plataforma.css?v=101">
+<link rel="stylesheet" href="plataforma.css?v=102">
 </head>
 <body>
 
@@ -119,7 +119,7 @@
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
-const VERSION = 101;
+const VERSION = 102;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const FUNC_URL = 'https://dorunbacwnkwdatfscri.supabase.co/functions/v1/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
@@ -141,7 +141,26 @@ const TEXTO_ERROR = {
   EMAIL_NO_VALIDO: 'Revisa el correo: no parece válido.',
   EMAIL_EN_USO: 'Ese correo ya tiene una cuenta (en Gymbro o en otro producto). Usa otro.',
   GIMNASIO_NO_VALIDO: 'Ese gimnasio no existe.',
+  DATOS_NO_VALIDOS: 'Revisa la frase (máx. 80 letras) y los colores.',
+  LOGO_NO_VALIDO: 'Ese logo no vale: prueba con otra imagen (PNG o JPG).',
 };
+// v102 — Temas de la app de Gymbro (la misma lista que en index.html: si se
+// añade uno allí, añadirlo aquí). El primero es el de por defecto.
+const TEMAS = [
+  ['theme-dark','Original',['#0E1013','#FF8A3D','#33D17A','#4FA3FF']], ['theme-light','Blanco',['#FFFFFF','#FF6B1A','#16A34A','#2563EB']],
+  ['theme-neon','Neón',['#170526','#FF2E9A','#39FF14','#00E5FF']], ['theme-fire','Fuego',['#2B0D00','#FF5100','#FFC400','#FF0044']],
+  ['theme-rave','Rave Verde',['#0B140B','#39FF14','#FFE066','#FFFFFF']], ['theme-ironhack','Ironhack',['#1B0B3F','#6EFFC7','#FF2FA0','#7B3FE4']],
+  ['theme-cyberpink','Cyber Magenta',['#26082E','#E91E8C','#F2B84B','#29D6D6']], ['theme-aedia','IA Clara',['#F6F5FA','#3D1E96','#22C55E','#4F46E5']],
+  ['theme-developers','Oro Developer',['#08090C','#F2C230','#29B6D8','#FFFFFF']], ['theme-core','Cine Coral',['#170A06','#FF5E3A','#FFD8C7','#F5F5F5']],
+  ['theme-gol','Gol Azul',['#04102E','#E31C2B','#FFFFFF','#1B6FD1']], ['theme-tektag','Tektag Violeta',['#0B0713','#F4D03F','#A855F7','#FFFFFF']],
+  ['theme-skvot','Director Neón',['#100D12','#33FF6E','#FF2E9C','#F5F0E6']], ['theme-founderz','Marketing Fuego',['#0F2B2B','#E8442C','#F5A623','#FFFFFF']],
+  ['theme-ionos','Ionos Cian',['#0A1F4D','#17C9E8','#FFFFFF','#2E5AAC']], ['theme-ufvfilm','Cyberpunk Ámbar',['#140A08','#E8A33D','#29C4C4','#FFFFFF']],
+  ['theme-ebis','Ebis Teal',['#0B2530','#1ABC9C','#FFFFFF','#1B3A4B']], ['theme-tealorange','Teal & Naranja',['#0A1414','#FF7A30','#1F8A8A','#FFFFFF']],
+  ['theme-noir','Noir Rojo',['#0A0A0A','#E8102A','#FFFFFF','#8A8A8A']], ['theme-wes','Pastel Cine',['#F2E4D0','#F2A65A','#E88DA0','#6FA8A0']],
+  ['theme-bladerunner','Neón Blade',['#0D0221','#FF2EC4','#00E5FF','#FFB300']], ['theme-rank-recluta','Rango: Recluta',['#101214','#9CA3AF','#5C6B8A','#FFFFFF']],
+  ['theme-rank-soldado','Rango: Soldado',['#14150F','#CD7F32','#5A6B3D','#F0E6C8']], ['theme-rank-sargento','Rango: Sargento',['#0E1216','#C7CBD1','#4A7BA6','#FFFFFF']],
+  ['theme-rank-capitan','Rango: Capitán',['#0D0A05','#FFD700','#7A1F2B','#FFFFFF']], ['theme-rank-general','Rango: General',['#050912','#7DE2FF','#FFFFFF','#C7CBD1']],
+];
 const textoError = e => TEXTO_ERROR[e && e.message] || 'Ocurrió un error, inténtalo de nuevo.';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // El dictado añade a veces espacios o un punto al final del correo.
@@ -318,6 +337,35 @@ async function pintarFicha(id){
       </div>
     </div>
     <div class="seccion">
+      <h2>Aspecto</h2>
+      <p class="nota">Lo que ven sus socios en la app y el dueño en su panel. Si un socio elige otro tema en Ajustes, se respeta el suyo.</p>
+      <div class="caja form" id="xForm">
+        <div class="vista-previa" id="xPrevia"></div>
+        <label class="campo"><span>Nombre que se ve</span><input id="xNombre" maxlength="60" autocomplete="off" value="${esc(g.nombre)}"></label>
+        <label class="campo"><span>Frase <i>(opcional: al compartir y al instalar)</i></span><input id="xLema" maxlength="80" autocomplete="off" value="${esc((g.aspecto || {}).lema || '')}"></label>
+        <div class="campo"><span>Logo <i>(cuadrado; se ve al entrar y como icono de la app)</i></span>
+          <div class="logo-fila">
+            <img id="xLogo" class="logo-ver" alt="">
+            <div class="logo-botones">
+              <label class="btn btn-borde btn-peq">Subir logo<input type="file" id="xLogoArchivo" accept="image/*" hidden></label>
+              <button class="btn btn-borde btn-peq" type="button" id="xLogoQuitar">Quitar</button>
+            </div>
+          </div>
+        </div>
+        <div class="campo"><span>Colores por defecto</span>
+          <div class="temas" id="xTemas"></div>
+        </div>
+        <div class="colores" id="xColores" hidden>
+          <label class="campo"><span>Fondo</span><input type="color" id="xInk"></label>
+          <label class="campo"><span>Día 1</span><input type="color" id="xDay1"></label>
+          <label class="campo"><span>Día 2</span><input type="color" id="xDay2"></label>
+          <label class="campo"><span>Día 3</span><input type="color" id="xDay3"></label>
+        </div>
+        <p class="error" id="xError" role="alert" hidden></p>
+        <button class="btn btn-azul" type="button" id="xGuardar">Guardar aspecto</button>
+      </div>
+    </div>
+    <div class="seccion">
       <h2>Administración</h2>
       <p class="nota">Los socios los gestiona el dueño desde su panel.</p>
       <div class="personas">${g.admins.length ? g.admins.map(a => `
@@ -336,6 +384,7 @@ async function pintarFicha(id){
         : `<button class="btn btn-azul" type="button" id="fEstado">Reactivar el gimnasio</button>`}
     </div>`;
 
+  prepararAspecto(g);
   $('fRegistro').addEventListener('change', async ev => {
     const abierto = ev.target.checked; ev.target.disabled = true;
     try{ await rpc('plataforma_registro_gymbro', { p_id: g.id, p_abierto: abierto }); toast(abierto ? 'Registro libre encendido.' : 'Registro libre apagado.'); }
@@ -357,6 +406,102 @@ async function pintarFicha(id){
     if(!si) return;
     try{ await rpc('plataforma_estado_gimnasio_gymbro', { p_id: g.id, p_activo: !baja }); toast(baja ? 'Gimnasio dado de baja.' : 'Gimnasio reactivado.'); pintarFicha(g.id); }
     catch(e){ toast(textoError(e), true); }
+  });
+}
+
+/* ---------- Aspecto (v102) ---------- */
+// Lo elegido se ve en la vista previa y se guarda todo junto con «Guardar».
+const LOGO_GYMBRO = '/icons/gymbro-512.png';
+function luz(hex){
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+}
+function prepararAspecto(g){
+  const a = g.aspecto || {};
+  const x = {
+    tema: a.tema || 'theme-dark',
+    colores: a.colores || { ink: '#0E1013', day1: '#FF8A3D', day2: '#33D17A', day3: '#4FA3FF' },
+    logo: g.logo_gymbro || null, logoCambiado: false,
+  };
+  const colores = () => {
+    if(x.tema === 'propio') return [x.colores.ink, x.colores.day1, x.colores.day2, x.colores.day3];
+    return (TEMAS.find(t => t[0] === x.tema) || TEMAS[0])[2];
+  };
+  const pintarTemas = () => {
+    $('xTemas').innerHTML = TEMAS.concat([['propio', 'Propios', [x.colores.ink, x.colores.day1, x.colores.day2, x.colores.day3]]]).map(t => `
+      <button type="button" class="tema${t[0] === x.tema ? ' activo' : ''}" data-tema="${esc(t[0])}">
+        <span class="tema-puntos">${t[2].map(c => `<i style="background:${esc(c)}"></i>`).join('')}</span>
+        <span class="tema-nombre">${esc(t[1])}</span>
+      </button>`).join('');
+    $('xTemas').querySelectorAll('[data-tema]').forEach(b => b.addEventListener('click', () => {
+      x.tema = b.getAttribute('data-tema'); pintarTemas(); previa();
+    }));
+    $('xColores').hidden = x.tema !== 'propio';
+  };
+  const previa = () => {
+    const [ink, d1, d2, d3] = colores(), oscuro = luz(ink) < 0.5;
+    const texto = oscuro ? '#F2F1EC' : '#14161A', tenue = oscuro ? '#9AA0AA' : '#6B6F76';
+    const lema = $('xLema').value.trim();
+    $('xPrevia').style.background = ink;
+    $('xPrevia').innerHTML = `
+      ${x.logo ? `<img src="${esc(x.logo)}" alt="">` : ''}
+      <div class="vp-nombre" style="color:${tenue}">${esc($('xNombre').value.trim() || g.nombre)}</div>
+      <div class="vp-titulo" style="color:${texto}">Entrar</div>
+      ${lema ? `<div class="vp-lema" style="color:${tenue}">${esc(lema)}</div>` : ''}
+      <div class="vp-dias">${[d1, d2, d3].map((c, i) => `<span style="background:${c};color:${luz(c) < 0.55 ? '#fff' : '#111'}">Día ${i + 1}</span>`).join('')}</div>`;
+    $('xLogo').src = x.logo || LOGO_GYMBRO;
+    $('xLogoQuitar').hidden = !x.logo;
+  };
+  ['Ink', 'Day1', 'Day2', 'Day3'].forEach(k => {
+    const campo = $('x' + k), clave = k.toLowerCase();
+    campo.value = x.colores[clave].toLowerCase();
+    campo.addEventListener('input', () => { x.colores = { ...x.colores, [clave]: campo.value.toUpperCase() }; pintarTemas(); previa(); });
+  });
+  $('xNombre').addEventListener('input', previa);
+  $('xLema').addEventListener('input', previa);
+  $('xLogoArchivo').addEventListener('change', async ev => {
+    const f = ev.target.files && ev.target.files[0]; ev.target.value = '';
+    if(!f) return;
+    try{ x.logo = await logoCuadrado(f); x.logoCambiado = true; previa(); }
+    catch(e){ toast(TEXTO_ERROR.LOGO_NO_VALIDO, true); }
+  });
+  $('xLogoQuitar').addEventListener('click', () => { x.logo = null; x.logoCambiado = true; previa(); });
+  $('xGuardar').addEventListener('click', async () => {
+    const err = $('xError'); err.hidden = true;
+    const nombre = $('xNombre').value.trim();
+    if(!nombre){ err.textContent = 'Falta el nombre.'; err.hidden = false; return; }
+    const datos = { nombre, lema: $('xLema').value.trim(), tema: x.tema };
+    if(x.tema === 'propio') datos.colores = x.colores;
+    $('xGuardar').disabled = true;
+    try{
+      await rpc('plataforma_aspecto_gymbro', { p_id: g.id, p_datos: datos });
+      if(x.logoCambiado){ await rpc('plataforma_logo_gymbro', { p_id: g.id, p_logo: x.logo }); x.logoCambiado = false; }
+      toast('Aspecto guardado. Los socios lo verán al abrir la app.');
+      g.nombre = nombre; $('fContenido').querySelector('.f-cabeza h1').textContent = nombre;
+    }catch(e){ err.textContent = textoError(e); err.hidden = false; }
+    $('xGuardar').disabled = false;
+  });
+  pintarTemas(); previa();
+}
+// La foto del móvil se recorta al centro en un cuadrado de 512 px (PNG, para
+// que sirva de icono). Si pesa demasiado, se hace más pequeña.
+function logoCuadrado(archivo){
+  return new Promise((ok, mal) => {
+    const url = URL.createObjectURL(archivo), img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const lado = Math.min(img.naturalWidth, img.naturalHeight);
+      if(!lado) return mal(new Error('LOGO_NO_VALIDO'));
+      for(const tam of [512, 384, 256, 192]){
+        const c = document.createElement('canvas'); c.width = c.height = tam;
+        c.getContext('2d').drawImage(img, (img.naturalWidth - lado) / 2, (img.naturalHeight - lado) / 2, lado, lado, 0, 0, tam, tam);
+        const datos = c.toDataURL('image/png');
+        if(datos.length <= 400000) return ok(datos);
+      }
+      mal(new Error('LOGO_NO_VALIDO'));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); mal(new Error('LOGO_NO_VALIDO')); };
+    img.src = url;
   });
 }
 

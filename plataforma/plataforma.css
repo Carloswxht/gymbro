@@ -1,5 +1,5 @@
 /* =====================================================================
-   PLATAFORMA DE GYMBRO (v101) · estilo de autonomIA Lab (copiado de la plataforma de MultiBar)
+   PLATAFORMA DE GYMBRO (v102) · estilo de autonomIA Lab (copiado de la plataforma de MultiBar)
    Mismos colores y letras que la web de autonomIA Lab (repositorio
    AutonomIA-Lab, src/app/globals.css): fondo casi negro, acento azul,
    Space Grotesk (títulos), Work Sans (texto) e IBM Plex Mono (números y
@@ -177,3 +177,23 @@ a{ color:inherit; text-decoration:none; }
 .ojo svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .ojo:active{ color:var(--text); }
 
+
+/* Aspecto de cada gimnasio (v102) */
+.vista-previa{ border-radius:14px; padding:20px 18px; border:1px solid var(--border); display:flex; flex-direction:column; gap:4px; font-family:system-ui, sans-serif; }
+.vista-previa img{ width:56px; height:56px; border-radius:14px; object-fit:cover; margin-bottom:10px; }
+.vp-nombre{ font-size:13px; letter-spacing:.5px; }
+.vp-titulo{ font-size:26px; font-weight:800; line-height:1.1; }
+.vp-lema{ font-size:13px; font-style:italic; }
+.vp-dias{ display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
+.vp-dias span{ font-size:12.5px; font-weight:700; padding:6px 11px; border-radius:999px; }
+.logo-fila{ display:flex; align-items:center; gap:14px; }
+.logo-ver{ width:64px; height:64px; border-radius:14px; object-fit:cover; background:var(--surface-2); border:1px solid var(--border); flex:none; }
+.logo-botones{ display:flex; gap:8px; flex-wrap:wrap; }
+.temas{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; }
+.tema{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; padding:10px; background:var(--surface-2); border:1px solid var(--border); border-radius:10px; color:var(--text); font:inherit; cursor:pointer; text-align:left; min-width:0; }
+.tema.activo{ border-color:var(--blue); box-shadow:0 0 0 2px rgba(59,130,246,.35); }
+.tema-puntos{ display:flex; gap:3px; }
+.tema-puntos i{ width:14px; height:14px; border-radius:50%; border:1px solid rgba(255,255,255,.18); }
+.tema-nombre{ font-size:12px; font-weight:400; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+.colores{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; }
+.colores .campo input[type=color]{ padding:4px; min-height:44px; cursor:pointer; }
