@@ -1137,6 +1137,17 @@
     font-size:13px;color:var(--text-dim);
   }
   .auth-switch span{color:var(--text);font-weight:700;cursor:pointer;}
+  .auth-acepto{display:flex;gap:10px;align-items:flex-start;margin:6px 0 4px;font-size:13px;line-height:1.45;color:var(--text-dim);cursor:pointer;}
+  .auth-acepto input{width:20px;height:20px;margin:0;flex:none;accent-color:var(--day1);}
+  .auth-acepto a, .auth-legal a{color:var(--text);}
+  .auth-legal{text-align:center;margin-top:18px;font-size:12px;}
+  .auth-legal a{color:var(--text-dim);}
+  .legal-gate{position:fixed;inset:0;z-index:3000;background:var(--ink);display:flex;align-items:center;justify-content:center;padding:24px 20px;overflow-y:auto;}
+  .legal-gate[hidden]{display:none;}
+  .legal-gate .legal-box{width:100%;max-width:360px;}
+  .legal-gate h2{font-family:'Archivo Black','Archivo',sans-serif;font-size:26px;margin:0 0 12px;color:var(--text);}
+  .legal-gate p.legal-txt{font-size:14.5px;line-height:1.55;color:var(--text-dim);margin:0 0 16px;}
+  .legal-gate p.legal-txt a{color:var(--text);}
   .auth-forgot{text-align:center;margin-top:14px;font-size:13px;}
   .auth-forgot span{color:var(--text-dim);text-decoration:underline;cursor:pointer;}
   .auth-msg{
@@ -1449,10 +1460,15 @@
           </button>
         </div>
       </div>
+      <label class="auth-acepto" id="authAcepto" style="display:none;">
+        <input type="checkbox" id="authAceptoCheck">
+        <span>Tengo 14 años o más y acepto la <a class="legal-link" href="/legal/" target="_blank" rel="noopener">privacidad y el aviso legal</a>.</span>
+      </label>
       <button class="auth-btn" id="authSubmit">Entrar</button>
       <p class="auth-forgot" id="authForgot"><span>¿Has olvidado tu contraseña?</span></p>
       <p class="auth-switch" id="authSwitch">¿No tienes cuenta? <span>Crear una</span></p>
       <p class="auth-msg" id="authMsg"></p>
+      <p class="auth-legal"><a class="legal-link" href="/legal/" target="_blank" rel="noopener">Privacidad y aviso legal</a></p>
     </div>
 
     <div class="auth-confirm" id="authConfirm">
@@ -1460,6 +1476,22 @@
       <h2>Revisa tu correo</h2>
       <p>Te enviamos un enlace de confirmación a <strong id="authConfirmEmail"></strong>. Ábrelo para activar tu cuenta antes de entrar.</p>
       <button id="authConfirmBack">Entendido</button>
+    </div>
+  </div>
+
+  <!-- v104 — quien no ha aceptado la privacidad vigente la acepta antes de seguir -->
+  <div class="legal-gate" id="legalGate" hidden>
+    <div class="legal-box">
+      <p class="kicker marca-nombre"></p>
+      <h2>Antes de seguir</h2>
+      <p class="legal-txt">Para usar la app, lee cómo cuida tus datos tu gimnasio: qué se guarda, para qué y cómo borrarlo. Está aquí: <a class="legal-link" href="/legal/" target="_blank" rel="noopener">privacidad y aviso legal</a>.</p>
+      <label class="auth-acepto">
+        <input type="checkbox" id="legalCheck">
+        <span>Tengo 14 años o más y lo acepto.</span>
+      </label>
+      <button class="auth-btn" id="legalAceptar">Aceptar y seguir</button>
+      <p class="auth-msg" id="legalMsg"></p>
+      <p class="auth-forgot"><span id="legalSalir">Salir</span></p>
     </div>
   </div>
 
@@ -1578,6 +1610,10 @@
 
       <p class="settings-section-title" style="margin-top:26px;">Cuenta</p>
       <p class="app-version" id="appVersion"></p>
+      <a class="dropdown-item legal-link" href="/legal/" target="_blank" rel="noopener" style="padding:14px 2px;text-decoration:none;color:inherit;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L4 6V11C4 16 7.5 19.5 12 21C16.5 19.5 20 16 20 11V6L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        Privacidad y aviso legal
+      </a>
       <a class="dropdown-item" id="panelLink" href="/panel/" hidden style="padding:14px 2px;text-decoration:none;color:inherit;">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 5H20V19H4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 9H16M8 13H16M8 17H12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         Panel del gimnasio
@@ -4966,7 +5002,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // Todo pasa por funciones de la base (las tablas están cerradas a la web).
 // La sesión es un token propio guardado en el móvil; vale 60 días y se
 // alarga sola al abrir la app.
-const APP_VERSION = 103;
+const APP_VERSION = 104;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
 // Negocio de Gymbro: ?g=slug en la dirección (v103: sin ?g= ni se llega
@@ -4989,6 +5025,7 @@ const TEXTO_ERROR = {
   SESION_CADUCADA: 'Tu sesión ha caducado. Vuelve a entrar.',
   DATOS_NO_VALIDOS: 'Algún dato no es válido.',
   DEMASIADOS_EJERCICIOS: 'Has llegado al máximo de ejercicios propios.',
+  VERSION_NO_VALIDA: 'El texto ha cambiado: vuelve a abrirlo y acéptalo.',
 };
 function textoError(e){
   return TEXTO_ERROR[e && e.message] || 'Ocurrió un error, inténtalo de nuevo.';
@@ -5871,6 +5908,7 @@ function pintarMarca(){
   const authLogo = document.getElementById('authLogo');
   authLogo.hidden = !gimnasio.logo;
   if(gimnasio.logo && authLogo.getAttribute('src') !== logo) authLogo.src = logo;
+  document.querySelectorAll('.legal-link').forEach(a => a.href = '/legal/?g=' + encodeURIComponent(NEGOCIO));
   const btnCompartir = document.getElementById('execDoneShare');
   if(btnCompartir) btnCompartir.textContent = 'Compartir ' + nombre;
   // El icono y el nombre al instalar son los de su gimnasio y la app
@@ -5963,6 +6001,7 @@ function setAuthMode(mode){
   authPass.autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
   authPass2Field.style.display = (mode === 'signup' || mode === 'reset') ? 'block' : 'none';
   authForgot.style.display = mode === 'signin' ? 'block' : 'none';
+  document.getElementById('authAcepto').style.display = mode === 'signup' ? 'flex' : 'none';
   authPass.value = '';
   authPass2.value = '';
   authSwitch.innerHTML = mode === 'signin'
@@ -6046,6 +6085,10 @@ authSubmit.addEventListener('click', async ()=>{
       setAuthMsg('Las contraseñas no coinciden.', true);
       return;
     }
+    if(!document.getElementById('authAceptoCheck').checked){
+      setAuthMsg('Para crear la cuenta tienes que aceptar la privacidad y el aviso legal.', true);
+      return;
+    }
   }
   setAuthMsg('Un momento...');
   try{
@@ -6054,6 +6097,13 @@ authSubmit.addEventListener('click', async ()=>{
       : await api('registrar_gymbro', { p_slug: NEGOCIO, p_email: email, p_password: password });
     if(r && r.error) throw new Error(r.error);
     guardarSesion(r.token);
+    // v104 — al crear la cuenta ya marcó la casilla: queda aceptada.
+    if(authMode === 'signup'){
+      try{
+        const e = await api('legal_estado_gymbro', { p_token: r.token });
+        await api('aceptar_legal_gymbro', { p_token: r.token, p_version: e.version });
+      }catch(e2){ /* si falla, se le vuelve a pedir al entrar */ }
+    }
     try{ localStorage.setItem(SESION_KEY + '.yo', JSON.stringify(usuarioDe(r))); }catch(e2){}
     setAuthMsg('');
     authPass.value = '';
@@ -6063,6 +6113,35 @@ authSubmit.addEventListener('click', async ()=>{
     setAuthMsg(textoError(e), true);
   }
 });
+
+// v104 — Privacidad: si el socio no ha aceptado la versión vigente, se le
+// pide antes de seguir (tapa la app). Sin señal no se bloquea el entreno.
+const legalGate = document.getElementById('legalGate');
+let legalVersion = null;
+async function comprobarLegal(){
+  let e;
+  try{ e = await api('legal_estado_gymbro', { p_token: sesionToken }); }catch(err){ return; }
+  if(e.aceptada){ legalGate.hidden = true; return; }
+  legalVersion = e.version;
+  document.getElementById('legalCheck').checked = false;
+  document.getElementById('legalMsg').textContent = '';
+  legalGate.hidden = false;
+}
+document.getElementById('legalAceptar').addEventListener('click', async ()=>{
+  const msg = document.getElementById('legalMsg');
+  if(!document.getElementById('legalCheck').checked){
+    msg.textContent = 'Marca la casilla para seguir.'; msg.classList.add('error'); return;
+  }
+  msg.textContent = 'Un momento...'; msg.classList.remove('error');
+  try{
+    await api('aceptar_legal_gymbro', { p_token: sesionToken, p_version: legalVersion });
+    legalGate.hidden = true;
+  }catch(e){
+    msg.textContent = textoError(e); msg.classList.add('error');
+    if(e.message === 'VERSION_NO_VALIDA') comprobarLegal();
+  }
+});
+document.getElementById('legalSalir').addEventListener('click', ()=> document.getElementById('logoutBtn').click());
 
 document.getElementById('logoutBtn').addEventListener('click', async ()=>{
   try{ await api('salir_gymbro', { p_token: sesionToken }); }catch(e){}
@@ -6076,6 +6155,7 @@ async function onLoggedIn(user){
   panelLink.hidden = user.rol !== 'admin';
   panelLink.href = '/panel/?g=' + encodeURIComponent(NEGOCIO);
   authGate.classList.add('hidden');
+  comprobarLegal();
   const profileEmail = document.getElementById('profileEmail');
   if(profileEmail) profileEmail.textContent = user.email || '';
   await loadState();

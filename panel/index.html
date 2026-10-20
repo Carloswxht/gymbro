@@ -140,7 +140,7 @@
     <input type="search" class="buscar" id="buscar" placeholder="Buscar por nombre o correo" aria-label="Buscar socio">
     <div class="lista" id="lista"></div>
 
-    <p class="pie"><span id="pVersion"></span><br>Gymbro · panel por <a href="https://www.autonomialab.es" target="_blank" rel="noopener">autonomIA Lab</a><br><button class="enlace-sutil" id="bSalir" style="margin-top:12px;">Cerrar sesión</button></p>
+    <p class="pie"><span id="pVersion"></span><br>Gymbro · panel por <a href="https://www.autonomialab.es" target="_blank" rel="noopener">autonomIA Lab</a> · <a id="pLegal" href="/legal/" target="_blank" rel="noopener">Privacidad</a><br><button class="enlace-sutil" id="bSalir" style="margin-top:12px;">Cerrar sesión</button></p>
   </section>
 
 </div>
@@ -151,7 +151,7 @@
 <div class="aviso" id="aviso" hidden></div>
 
 <script>
-const VERSION = 103;
+const VERSION = 104;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const FUNC_URL = 'https://dorunbacwnkwdatfscri.supabase.co/functions/v1/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
@@ -169,6 +169,7 @@ let datos = null;
 
 const $ = id => document.getElementById(id);
 document.getElementById('pVersion').textContent = 'Panel v' + VERSION;
+document.getElementById('pLegal').href = '/legal/?g=' + encodeURIComponent(NEGOCIO);
 $('pApp').href = '/?g=' + encodeURIComponent(NEGOCIO);
 
 const TEXTO_ERROR = {

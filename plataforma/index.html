@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark">
 <title>Plataforma · Gymbro</title>
-<link rel="stylesheet" href="plataforma.css?v=102">
+<link rel="stylesheet" href="plataforma.css?v=104">
 </head>
 <body>
 
@@ -119,7 +119,7 @@
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
-const VERSION = 102;
+const VERSION = 104;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const FUNC_URL = 'https://dorunbacwnkwdatfscri.supabase.co/functions/v1/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
@@ -141,7 +141,7 @@ const TEXTO_ERROR = {
   EMAIL_NO_VALIDO: 'Revisa el correo: no parece válido.',
   EMAIL_EN_USO: 'Ese correo ya tiene una cuenta (en Gymbro o en otro producto). Usa otro.',
   GIMNASIO_NO_VALIDO: 'Ese gimnasio no existe.',
-  DATOS_NO_VALIDOS: 'Revisa la frase (máx. 80 letras) y los colores.',
+  DATOS_NO_VALIDOS: 'Revisa los datos: algo no tiene el formato esperado (NIF de 8 a 12 letras y números; frase de máx. 80 letras; colores).',
   LOGO_NO_VALIDO: 'Ese logo no vale: prueba con otra imagen (PNG o JPG).',
 };
 // v102 — Temas de la app de Gymbro (la misma lista que en index.html: si se
@@ -308,6 +308,7 @@ async function pintarFicha(id){
   caja.innerHTML = `
     <div class="f-cabeza">
       <div class="t-arriba"><h1>${esc(g.nombre)}</h1><span class="chip${g.activo ? '' : ' baja'}">${g.activo ? 'Activo' : 'De baja'}</span></div>
+      ${legalCompleto(g.legal) ? '' : '<p class="error">Faltan sus datos legales (titular, NIF, domicilio y correo): sin ellos su página de privacidad sale incompleta. Rellénalos abajo, en «Datos legales».</p>'}
       <div class="t-slug">gymbro.autonomialab.es${esc(app)}</div>
       <div class="f-meta">Alta: ${esc(fecha(g.alta))}${g.baja ? ' · De baja desde ' + esc(fecha(g.baja)) : ''}</div>
     </div>
@@ -366,6 +367,19 @@ async function pintarFicha(id){
       </div>
     </div>
     <div class="seccion">
+      <h2>Datos legales</h2>
+      <p class="nota">Salen en su <a class="enlace-nota" href="/legal/?g=${encodeURIComponent(g.slug)}" target="_blank" rel="noopener">página de privacidad</a>: el gimnasio es el responsable de los datos de sus socios.</p>
+      <div class="caja form" id="lForm">
+        <label class="campo"><span>Titular <i>(persona o empresa)</i></span><input id="lTitular" maxlength="120" autocomplete="off" value="${esc(g.legal.titular || '')}"></label>
+        <label class="campo"><span>NIF / CIF</span><input id="lNif" maxlength="20" autocapitalize="characters" autocomplete="off" value="${esc(g.legal.nif || '')}"></label>
+        <label class="campo"><span>Domicilio</span><input id="lDomicilio" maxlength="200" autocomplete="off" value="${esc(g.legal.domicilio || '')}"></label>
+        <label class="campo"><span>Correo para temas de datos</span><input id="lCorreo" type="email" inputmode="email" autocapitalize="off" autocomplete="off" value="${esc(g.legal.correo || '')}"></label>
+        <label class="campo"><span>Teléfono <i>(opcional)</i></span><input id="lTelefono" type="tel" maxlength="30" autocomplete="off" value="${esc(g.legal.telefono || '')}"></label>
+        <p class="error" id="lError" role="alert" hidden></p>
+        <button class="btn btn-azul" type="button" id="lGuardar">Guardar datos legales</button>
+      </div>
+    </div>
+    <div class="seccion">
       <h2>Administración</h2>
       <p class="nota">Los socios los gestiona el dueño desde su panel.</p>
       <div class="personas">${g.admins.length ? g.admins.map(a => `
@@ -385,6 +399,19 @@ async function pintarFicha(id){
     </div>`;
 
   prepararAspecto(g);
+  $('lGuardar').addEventListener('click', async () => {
+    const err = $('lError'); err.hidden = true;
+    const datos = { titular: $('lTitular').value.trim(), nif: $('lNif').value.trim(), domicilio: $('lDomicilio').value.trim(),
+                    correo: limpiarCorreo($('lCorreo').value).toLowerCase(), telefono: $('lTelefono').value.trim() };
+    $('lGuardar').disabled = true;
+    try{
+      g.legal = await rpc('plataforma_legal_gymbro', { p_id: g.id, p_datos: datos });
+      $('lNif').value = g.legal.nif || ''; $('lCorreo').value = g.legal.correo || '';
+      toast(legalCompleto(g.legal) ? 'Datos legales guardados.' : 'Guardado. Aún faltan datos para que la privacidad salga completa.');
+      const aviso = $('fContenido').querySelector('.f-cabeza .error'); if(aviso) aviso.hidden = legalCompleto(g.legal);
+    }catch(e){ err.textContent = textoError(e); err.hidden = false; }
+    $('lGuardar').disabled = false;
+  });
   $('fRegistro').addEventListener('change', async ev => {
     const abierto = ev.target.checked; ev.target.disabled = true;
     try{ await rpc('plataforma_registro_gymbro', { p_id: g.id, p_abierto: abierto }); toast(abierto ? 'Registro libre encendido.' : 'Registro libre apagado.'); }
@@ -408,6 +435,9 @@ async function pintarFicha(id){
     catch(e){ toast(textoError(e), true); }
   });
 }
+
+/* ---------- Datos legales (v104) ---------- */
+const legalCompleto = l => !!(l && l.titular && l.nif && l.domicilio && l.correo);
 
 /* ---------- Aspecto (v102) ---------- */
 // Lo elegido se ve en la vista previa y se guarda todo junto con «Guardar».

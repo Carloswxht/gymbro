@@ -1,5 +1,5 @@
 /* =====================================================================
-   PLATAFORMA DE GYMBRO (v102) · estilo de autonomIA Lab (copiado de la plataforma de MultiBar)
+   PLATAFORMA DE GYMBRO (v104) · estilo de autonomIA Lab (copiado de la plataforma de MultiBar)
    Mismos colores y letras que la web de autonomIA Lab (repositorio
    AutonomIA-Lab, src/app/globals.css): fondo casi negro, acento azul,
    Space Grotesk (títulos), Work Sans (texto) e IBM Plex Mono (números y
@@ -197,3 +197,7 @@ a{ color:inherit; text-decoration:none; }
 .tema-nombre{ font-size:12px; font-weight:400; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
 .colores{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; }
 .colores .campo input[type=color]{ padding:4px; min-height:44px; cursor:pointer; }
+
+/* Datos legales (v104) */
+.enlace-nota{ color:var(--blue-bright); text-decoration:underline; text-underline-offset:2px; }
+.f-cabeza .error{ margin-top:10px; }

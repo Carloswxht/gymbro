@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0E1013">
+<meta name="robots" content="noindex">
+<title>Privacidad y aviso legal</title>
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/gymbro-192.png">
+<style>
+  /* Privacidad y aviso legal de cada gimnasio (v104). Letra del sistema
+     (sin Google Fonts: esta página no manda datos a nadie más). */
+  :root{ --ink:#0E1013; --panel:#181B20; --line:#2B3038; --text:#F2F1EC; --text-dim:#9AA0AA; --aviso:#FFB347; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--ink); color:var(--text); font:15.5px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; -webkit-text-size-adjust:100%; }
+  main{ max-width:680px; margin:0 auto; padding:max(20px,env(safe-area-inset-top)) 16px 48px; }
+  .kicker{ font-size:13px; color:var(--text-dim); margin:0 0 4px; }
+  h1{ font-size:27px; line-height:1.15; margin:0 0 6px; }
+  h2{ font-size:17px; margin:28px 0 8px; }
+  p, li{ color:#D9D8D2; }
+  ul{ padding-left:20px; margin:8px 0; }
+  li{ margin:4px 0; }
+  .version{ font-size:13px; color:var(--text-dim); margin:0 0 18px; }
+  .ficha{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:10px 0; }
+  .ficha div{ color:#D9D8D2; }
+  .ficha b{ color:var(--text); }
+  .pendiente{ color:var(--aviso); }
+  .aviso{ background:#2A2114; border:1px solid #5A4520; color:var(--aviso); border-radius:12px; padding:12px 14px; font-size:14px; margin:12px 0; }
+  .volver{ display:inline-block; margin:0 0 18px; color:var(--text-dim); text-decoration:none; font-size:14px; border:1px solid var(--line); border-radius:10px; padding:8px 12px; }
+  a{ color:#7DB7FF; }
+  .pie{ margin-top:32px; font-size:13px; color:var(--text-dim); }
+</style>
+</head>
+<body>
+<main id="contenido"><p class="kicker">Cargando…</p></main>
+
+<script>
+// Versión del texto: la misma que privado.version_legal_gymbro() en la base.
+// Si se cambia el texto, subir las dos (todos los socios lo vuelven a aceptar).
+const VERSION_TEXTO = '2026-10-20';
+const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
+const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
+const SLUG = (new URLSearchParams(location.search).get('g') || '').toLowerCase();
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dato = v => v ? esc(v) : '<span class="pendiente">pendiente</span>';
+const fecha = v => new Date(v + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
+
+function ficha(d, conTelefono){
+  return `<div class="ficha">
+    <div><b>${esc(d.titular || d.nombre)}</b>${d.titular && d.nombre && d.titular !== d.nombre ? ' (' + esc(d.nombre) + ')' : ''}</div>
+    <div>NIF: ${dato(d.nif)}</div>
+    <div>Domicilio: ${dato(d.domicilio)}</div>
+    <div>Correo: ${d.correo ? `<a href="mailto:${esc(d.correo)}">${esc(d.correo)}</a>` : dato(null)}</div>
+    ${conTelefono && d.telefono ? `<div>Teléfono: ${esc(d.telefono)}</div>` : ''}
+  </div>`;
+}
+
+// Privacidad de la app de un gimnasio.
+function textoGimnasio(l){
+  const g = l.gimnasio, e = l.encargado, nombre = esc(g.nombre);
+  const contacto = g.correo ? `<a href="mailto:${esc(g.correo)}">${esc(g.correo)}</a>` : 'el correo de contacto del gimnasio';
+  return `
+    <a class="volver" href="/?g=${encodeURIComponent(l.slug)}">← Volver a ${nombre}</a>
+    <p class="kicker">${nombre}</p>
+    <h1>Privacidad y aviso legal</h1>
+    <p class="version">Versión del ${fecha(l.version)}</p>
+    ${l.completo ? '' : '<div class="aviso">El gimnasio todavía no ha completado sus datos legales. Si los necesitas, pídeselos directamente.</div>'}
+
+    <h2>1. Quién es el responsable de tus datos</h2>
+    <p>La app de ${nombre} la ofrece este gimnasio a sus socios. El gimnasio es el <b>responsable</b> de tus datos:</p>
+    ${ficha(g, true)}
+    <p>La app funciona sobre <b>Gymbro</b>, de <b>autonomIA Lab</b>, que la aloja y la mantiene por encargo del gimnasio (<b>encargado del tratamiento</b>). autonomIA Lab solo usa tus datos para que la app funcione y siguiendo las instrucciones del gimnasio.</p>
+    ${e && (e.titular || e.nif) ? ficha(e, false) : ''}
+
+    <h2>2. Qué datos guardamos</h2>
+    <ul>
+      <li><b>Tu cuenta:</b> correo, nombre (si lo das) y la contraseña cifrada (nadie puede leerla).</li>
+      <li><b>Tu entrenamiento:</b> la rutina que eliges, los ejercicios, los pesos, las series y repeticiones, los entrenos terminados y sus fechas, los ejercicios que añades tú y sus enlaces de vídeo.</li>
+      <li><b>Tus preferencias:</b> tema de colores y orden de tus días.</li>
+      <li><b>Datos técnicos:</b> la fecha de tus accesos y de cuándo aceptaste este texto.</li>
+    </ul>
+    <p>No pedimos datos de salud, ni de pago, ni tu ubicación.</p>
+
+    <h2>3. Para qué y con qué derecho</h2>
+    <ul>
+      <li>Para darte el servicio de la app: guardar tu rutina y tu progreso y que puedas verlos en cualquier móvil (es lo que pides al crear la cuenta).</li>
+      <li>Para que el gimnasio gestione quién es socio: altas, bajas y, de forma resumida, cuándo entrenó por última vez y cuántos entrenos hizo este mes. <b>El gimnasio no ve tus pesos ni tu rutina.</b></li>
+      <li>Para mandarte los correos de la cuenta: la invitación y el cambio de contraseña. No mandamos publicidad.</li>
+    </ul>
+
+    <h2>4. Cuánto tiempo</h2>
+    <p>Mientras tengas la cuenta. En la app, <b>Ajustes → Eliminar cuenta</b> borra en el momento tu rutina, tus pesos, tu historial y tus ejercicios propios, y desactiva tu acceso. Solo se conserva, sin tu correo, la fecha en que aceptaste este texto, como prueba.</p>
+
+    <h2>5. Quién más los trata</h2>
+    <ul>
+      <li><b>Supabase</b>: la base de datos, con servidores en Fráncfort (Unión Europea).</li>
+      <li><b>Resend</b>: envía los correos de invitación y de contraseña (solo tu correo y el enlace).</li>
+      <li><b>GitHub Pages</b>: sirve las páginas de la app (no recibe tus datos de entrenamiento).</li>
+      <li><b>Google Fonts</b>: las letras de la app; tu navegador las descarga de Google.</li>
+    </ul>
+    <p>Algunos de estos servicios son de empresas de Estados Unidos; se usan con las garantías previstas por la ley europea (cláusulas contractuales tipo o el Marco de Privacidad de Datos UE-EE. UU.). No vendemos ni cedemos tus datos a nadie más.</p>
+
+    <h2>6. Tus derechos</h2>
+    <p>Puedes pedir ver, corregir, borrar o llevarte tus datos, oponerte a su uso o limitarlo, escribiendo a ${contacto}. Si crees que no se respetan, puedes reclamar ante la <a href="https://www.aepd.es" target="_blank" rel="noopener">Agencia Española de Protección de Datos</a>.</p>
+
+    <h2>7. Edad</h2>
+    <p>Para crear una cuenta tienes que tener <b>14 años o más</b>.</p>
+
+    <h2>8. Cookies y almacenamiento en tu móvil</h2>
+    <p>La app no usa cookies de publicidad ni de análisis. Guarda en tu móvil lo necesario para funcionar: tu sesión, tu tema y lo último que viste (se borra al cerrar la sesión), y el nombre, los colores y el logo del gimnasio (para abrir rápido y sin señal).</p>
+
+    <h2>9. Aviso legal</h2>
+    <p>Esta app es un servicio de ${nombre} para sus socios, cuyos datos aparecen arriba. La plataforma Gymbro y su diseño son de autonomIA Lab. Las rutinas y los ejercicios son orientativos: entrena con cabeza y consulta a un profesional si tienes dudas o alguna lesión.</p>
+
+    <p class="pie">Gymbro · de <a href="https://www.autonomialab.es" target="_blank" rel="noopener">autonomIA Lab</a></p>`;
+}
+
+// Sin gimnasio: la página principal de Gymbro.
+function textoGeneral(){
+  return `
+    <a class="volver" href="/inicio/">← Volver a Gymbro</a>
+    <p class="kicker">Gymbro</p>
+    <h1>Privacidad y aviso legal</h1>
+    <p class="version">Versión del ${fecha(VERSION_TEXTO)}</p>
+    <p>Esta dirección (<b>gymbro.autonomialab.es</b>) es de <b>autonomIA Lab</b>, que hace y mantiene Gymbro, la app de rutinas de los gimnasios que la contratan.</p>
+    <h2>Tus datos en esta página</h2>
+    <p>La página de inicio no te pide datos ni usa cookies. Si escribes el nombre corto de tu gimnasio, solo se usa para comprobar que existe y abrir su app.</p>
+    <h2>Si eres socio de un gimnasio</h2>
+    <p>Cada gimnasio es el responsable de los datos de sus socios. Su texto de privacidad está en la app de tu gimnasio (en la pantalla de entrada y en Ajustes).</p>
+    <h2>Aviso legal</h2>
+    <p>Gymbro y su diseño son de autonomIA Lab. Más información en <a href="https://www.autonomialab.es" target="_blank" rel="noopener">autonomialab.es</a>.</p>
+    <p class="pie">Gymbro · de <a href="https://www.autonomialab.es" target="_blank" rel="noopener">autonomIA Lab</a></p>`;
+}
+
+(async () => {
+  const caja = document.getElementById('contenido');
+  if(!SLUG){ caja.innerHTML = textoGeneral(); return; }
+  try{
+    const res = await fetch(API_URL + 'legal_gymbro', { method: 'POST',
+      headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_slug: SLUG }) });
+    if(!res.ok) throw new Error('NO');
+    const l = await res.json();
+    document.title = 'Privacidad · ' + l.gimnasio.nombre;
+    caja.innerHTML = textoGimnasio(l);
+  }catch(e){
+    caja.innerHTML = `<p class="kicker">Gymbro</p><h1>Privacidad y aviso legal</h1>
+      <p>No se pudo cargar el texto de este gimnasio. Revisa la conexión o el enlace y vuelve a intentarlo.</p>
+      <a class="volver" href="/legal/">Ver el texto general de Gymbro</a>`;
+  }
+})();
+</script>
+</body>
+</html>
