@@ -1559,6 +1559,10 @@
 
       <p class="settings-section-title" style="margin-top:26px;">Cuenta</p>
       <p class="app-version" id="appVersion"></p>
+      <a class="dropdown-item" id="panelLink" href="/panel/" hidden style="padding:14px 2px;text-decoration:none;color:inherit;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 5H20V19H4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 9H16M8 13H16M8 17H12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Panel del gimnasio
+      </a>
       <div class="danger-item" id="deleteAccountBtn">
         <p class="di-title">Eliminar cuenta</p>
         <p class="di-desc">Borra tu cuenta y todos tus datos por completo, o consérvalos para volver más adelante.</p>
@@ -4943,7 +4947,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // Todo pasa por funciones de la base (las tablas están cerradas a la web).
 // La sesión es un token propio guardado en el móvil; vale 60 días y se
 // alarga sola al abrir la app.
-const APP_VERSION = 98;
+const APP_VERSION = 99;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
 // Negocio de Gymbro: ?g=slug en la dirección. Hoy solo existe War300, que es
@@ -4999,7 +5003,7 @@ function guardarSesion(token){
   sesionToken = token;
   try{ if(token) localStorage.setItem(SESION_KEY, token); else localStorage.removeItem(SESION_KEY); }catch(e){}
 }
-function usuarioDe(r){ return { id: r.id, email: r.email, nombre: r.nombre }; }
+function usuarioDe(r){ return { id: r.id, email: r.email, nombre: r.nombre, rol: r.rol }; }
 // Al salir se vacía lo de la cuenta guardado en este móvil y se recarga la
 // página: así no queda en memoria nada de la cuenta anterior (pesos, rutina)
 // que se pudiera guardar en otra cuenta que entre después en el mismo móvil.
@@ -5939,6 +5943,10 @@ document.getElementById('logoutBtn').addEventListener('click', async ()=>{
 
 async function onLoggedIn(user){
   currentUser = user;
+  // v99 — quien administra el gimnasio ve en Ajustes el enlace a su panel.
+  const panelLink = document.getElementById('panelLink');
+  panelLink.hidden = user.rol !== 'admin';
+  panelLink.href = '/panel/?g=' + encodeURIComponent(NEGOCIO);
   authGate.classList.add('hidden');
   const profileEmail = document.getElementById('profileEmail');
   if(profileEmail) profileEmail.textContent = user.email || '';

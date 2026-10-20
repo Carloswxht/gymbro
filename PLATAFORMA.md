@@ -19,7 +19,7 @@
 - Las ventanas de confirmación de algunas herramientas (secretos de Edge Functions, `apply_migration`, SQL con DELETE) **se cancelan solas en su app**: esas cosas las hace él a mano con pasos guiados (p. ej. pegar SQL en Supabase → SQL Editor → Run).
 - Debe verse y funcionar igual en iPhone (Safari) y Android (Chrome); probar a 390 px con capturas antes de entregar. Cada entrega con número de versión visible.
 - Lo que pida un cliente se añade como **opción para todos, apagada por defecto**. No borrar nada: lo antiguo se mueve a una carpeta de archivo.
-- **No tocar** otros proyectos de Carlos (Supabase: «Suelos la Giralda», «War300» (en uso por War300 hasta pasar sus datos a la carpeta `gymbro`; después se pausa, sin borrarlo), «autonomIA Lab antiguo» (base de la otra sesión del 11 oct, pausada; sus datos pasarán a la carpeta `autonomialab`); El Recreo, otro cliente con su propio repositorio y base).
+- **No tocar** otros proyectos de Carlos (Supabase: «Suelos la Giralda», «War300» (pausado el 19 oct, de reserva: sus datos ya están en la carpeta `gymbro`), «autonomIA Lab antiguo» (base de la otra sesión del 11 oct, pausada; sus datos pasarán a la carpeta `autonomialab`); El Recreo, otro cliente con su propio repositorio y base).
 - Al terminar cada sesión: actualizar el `CLAUDE.md` del repositorio (y este archivo si cambian las bases, en todos los repositorios).
 
 ## Decisiones del 18 oct (Carlos: «ok a todo»)
@@ -41,7 +41,7 @@
 
 ## Repositorios, dominios y sesiones
 - `Carloswxht/multibar-platform` → MultiBar, `https://carta.autonomialab.es` (GitHub Pages).
-- `Carloswxht/gymbro` (antes `war300`, renombrado por Carlos el 19 oct) → Gymbro, `https://gymbro.autonomialab.es` (GitHub Pages; hoy War300 sigue en Cloudflare).
+- `Carloswxht/gymbro` (antes `war300`, renombrado por Carlos el 19 oct) → Gymbro, `https://gymbro.autonomialab.es` (GitHub Pages).
 - `Carloswxht/AutonomIA-Lab` → la SaaS: web de la empresa (`autonomialab.es`), membresía, panel de plataforma (`/admin`) y gestión de la empresa. Dueño de las carpetas `comun` y `autonomialab`.
 - Futuros productos: un repositorio cada uno, con su subdominio de `autonomialab.es` (GitHub Pages admite un dominio por repositorio; los subdominios se crean gratis en DonDominio). Nunca Cloudflare para lo que ve el cliente (bloqueos de LaLiga).
 - Correo de la plataforma: Resend, dominio `autonomialab.com` verificado, remitente `avisos@autonomialab.com`.
@@ -54,7 +54,7 @@
 | Plataforma (común) | `AutonomIA-Lab` | `comun` | — | ninguno (solo el nombre) | paso 2 hecho (18 oct); su SQL y el login siguen en `multibar-platform` hasta la Fase 2 |
 | autonomIA Lab (SaaS) | `AutonomIA-Lab` | `autonomialab` | `autonomialab.es` (+ `/admin`, `/miembros`) | `_autonomialab` | por empezar |
 | MultiBar (bares) | `multibar-platform` | `multibar` | `carta.autonomialab.es` | `_multibar` (desde el 18 oct, v19; los nombres viejos se quitaron el mismo día) | en marcha (La Mar de Gambas; web v30; panel de plataforma en `/plataforma/`) |
-| Gymbro (rutinas de gimnasio) | `gymbro` (antes `war300`) | `gymbro` | `gymbro.autonomialab.es` | `_gymbro` | en preparación (19 oct): carpeta `gymbro` aplicada en Supabase (16 funciones idénticas a la copia probada); primer cliente War300, por pasar desde su Supabase propio |
+| Gymbro (rutinas de gimnasio) | `gymbro` (antes `war300`) | `gymbro` | `gymbro.autonomialab.es` | `_gymbro` | en marcha (20 oct): War300 migrado a `autonomialab-db` y publicado en `gymbro.autonomialab.es` (recuperar contraseña por correo; panel del dueño en `/panel/`); su Supabase propio, pausado |
 
 - **Regla de nombres (Carlos, 17 oct):** todo lo propio de un producto (tablas, funciones, roles…) lleva **el nombre del producto al final**, con guion bajo (la base no admite «-»): `ejercicios_gimnasio`, `pedidos_multibar`, `ver_carta_multibar`. Así nunca hay dos cosas iguales aunque dos productos tengan «ejercicios» o «pedidos». **Lo común no lleva nada** (solo el nombre: `negocios`, `usuarios`) y lo de la empresa lleva `_autonomialab` (`cuotas_autonomialab`). **Lo de un negocio concreto nunca lleva su nombre** (nada de `tapas_multibar_lamardegambas`): es **contenido** dentro de las tablas de su gremio, marcado con su número de negocio (su carta = filas de `productos_multibar`; sus colores, textos y opciones = sus `ajustes_multibar`); si un negocio necesita un dato que solo tiene él, va en su apartado de **«datos extra»** (un campo JSON de su ficha), sin crear tablas ni campos nuevos. Así el programa del gremio es uno solo para todos sus negocios (decisión de Carlos, 18 oct). Lo nuevo nace así; lo que ya existe en MultiBar se renombra en el paso 2 (se añade el nombre nuevo, la web pasa a usarlo y luego se retira el viejo, sin que La Mar de Gambas note nada).
 - Un nombre de carpeta, un subdominio y un sufijo **no se repiten nunca**. Los nombres de producto en minúsculas y sin espacios (`multibar`, `gimnasio`…).

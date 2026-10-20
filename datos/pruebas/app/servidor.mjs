@@ -29,13 +29,15 @@ http.createServer(async (req, res) => {
     const cli = await pool.connect();
     try {
       await cli.query('set role service_role');
-      const r = await cli.query('select public.recuperar_crear_gymbro($1) as e', [JSON.parse(body).email]);
+      const b = JSON.parse(body);
+      let r = await cli.query(`select public.${b.bienvenida ? 'bienvenida_crear_gymbro' : 'recuperar_crear_gymbro'}($1) as e`, [b.email]);
+      if (!r.rows[0].e && b.bienvenida) r = await cli.query('select public.recuperar_crear_gymbro($1) as e', [b.email]);
       ultimoEnlace = r.rows[0].e;
     } catch (e) { console.error(e.message); } finally { await cli.query('reset role').catch(()=>{}); cli.release(); }
     res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"ok":true}'); return;
   }
   if (url.pathname === '/__ultimo_enlace') { res.writeHead(200); res.end(JSON.stringify(ultimoEnlace)); return; }
-  let f = path.join(RAIZ, url.pathname === '/' ? 'index.html' : url.pathname);
+  let f = path.join(RAIZ, url.pathname.endsWith('/') ? url.pathname + 'index.html' : url.pathname);
   if (!f.startsWith(RAIZ) || !fs.existsSync(f)) { res.writeHead(404); res.end(); return; }
   res.writeHead(200, { 'content-type': tipos[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res);
 }).listen(PUERTO, () => console.log('listo ' + PUERTO));
