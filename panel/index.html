@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Panel · Gymbro</title>
+<meta name="theme-color" content="#0E1013">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Panel del dueño de cada gimnasio (v99). Mismo estilo oscuro que la app. */
+  :root{
+    --ink:#0E1013; --panel:#181B20; --panel-2:#1F2329; --line:#2B3038;
+    --text:#F2F1EC; --text-dim:#9AA0AA;
+    --naranja:#FF8A3D; --verde:#33D17A; --azul:#4FA3FF; --rojo:#FF5D5D;
+    --titulos:'Archivo Black','Archivo',system-ui,sans-serif;
+    --cuerpo:'Archivo',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--cuerpo);-webkit-text-size-adjust:100%;}
+  body{min-height:100vh;}
+  button,input{font:inherit;color:inherit;}
+  [hidden]{display:none!important;}
+  .envoltorio{max-width:640px;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left));}
+  .kicker{font-size:13px;color:var(--text-dim);margin:0 0 2px;letter-spacing:.2px;}
+  h1{font-family:var(--titulos);font-size:30px;margin:0;line-height:1.1;}
+  h2{font-family:var(--titulos);font-size:17px;margin:0 0 12px;}
+  .cabecera{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:22px;}
+  .enlace-sutil{background:none;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px;color:var(--text-dim);cursor:pointer;text-decoration:none;white-space:nowrap;}
+  .campo{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .campo label{font-size:11.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px;}
+  .campo input{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:16px;outline:none;width:100%;}
+  .campo input:focus{border-color:var(--text-dim);}
+  .boton{width:100%;background:var(--text);color:var(--ink);border:0;border-radius:12px;padding:15px;font-weight:700;font-size:15px;cursor:pointer;min-height:50px;}
+  .boton:active{transform:scale(.98);}
+  .boton:disabled{opacity:.5;}
+  .boton.peligro{background:var(--rojo);color:#fff;}
+  .boton.secundario{background:var(--panel-2);color:var(--text);border:1px solid var(--line);}
+  .mensaje{font-size:13px;color:var(--text-dim);text-align:center;margin-top:12px;min-height:16px;}
+  .mensaje.error{color:var(--naranja);}
+  #vEntrar{min-height:80vh;display:flex;flex-direction:column;justify-content:center;max-width:420px;margin:0 auto;}
+  #vEntrar h1{margin-bottom:24px;}
+
+  .cifras{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .cifra{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 12px;}
+  .cifra b{display:block;font-family:var(--titulos);font-size:26px;font-variant-numeric:tabular-nums;}
+  .cifra span{font-size:12px;color:var(--text-dim);line-height:1.3;display:block;margin-top:4px;}
+  .ajuste{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
+  .ajuste p{margin:0;}
+  .ajuste .t{font-weight:600;font-size:15px;}
+  .ajuste .d{font-size:12.5px;color:var(--text-dim);margin-top:3px;line-height:1.35;}
+  .interruptor{position:relative;width:52px;height:30px;flex:none;}
+  .interruptor input{opacity:0;width:100%;height:100%;margin:0;position:absolute;inset:0;cursor:pointer;z-index:1;}
+  .interruptor span{position:absolute;inset:0;background:var(--panel-2);border:1px solid var(--line);border-radius:30px;transition:background .15s;}
+  .interruptor span::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--text-dim);transition:transform .15s,background .15s;}
+  .interruptor input:checked + span{background:var(--verde);border-color:var(--verde);}
+  .interruptor input:checked + span::after{transform:translateX(22px);background:#fff;}
+  .interruptor input:focus-visible + span{outline:2px solid var(--text);outline-offset:2px;}
+
+  .barra-socios{display:flex;gap:10px;align-items:center;margin:22px 0 12px;}
+  .barra-socios h2{margin:0;flex:1;}
+  .boton-alta{background:var(--text);color:var(--ink);border:0;border-radius:10px;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;}
+  .buscar{width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px;outline:none;margin-bottom:12px;}
+  .lista{display:flex;flex-direction:column;gap:10px;}
+  .socio{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;cursor:pointer;}
+  .socio.baja{opacity:.55;}
+  .socio .fila{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .socio .nombre{font-weight:700;font-size:16px;}
+  .socio .correo{font-size:13px;color:var(--text-dim);margin-top:3px;word-break:break-all;}
+  .socio .uso{font-size:13px;margin-top:8px;color:var(--text);}
+  .socio .uso em{font-style:normal;color:var(--text-dim);}
+  .etiqueta{font-size:11px;font-weight:700;letter-spacing:.3px;padding:3px 8px;border-radius:20px;border:1px solid currentColor;}
+  .etiqueta.admin{color:var(--azul);}
+  .etiqueta.pendiente{color:var(--naranja);}
+  .etiqueta.baja{color:var(--rojo);}
+  .etiqueta.tu{color:var(--text-dim);}
+  .vacio{color:var(--text-dim);font-size:14px;text-align:center;padding:20px 0;}
+  .pie{text-align:center;font-size:11.5px;color:var(--text-dim);margin-top:34px;line-height:1.6;}
+  .pie a{color:var(--text-dim);}
+
+  .velo{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:20;}
+  .hoja{background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;width:100%;max-width:640px;padding:20px max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));max-height:90vh;overflow:auto;}
+  .hoja .cab{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
+  .hoja .cab h2{margin:0;}
+  .hoja .sub{font-size:13px;color:var(--text-dim);margin:4px 0 0;word-break:break-all;}
+  .cerrar{background:var(--panel-2);border:1px solid var(--line);border-radius:50%;width:36px;height:36px;flex:none;cursor:pointer;font-size:18px;line-height:1;}
+  .acciones{display:flex;flex-direction:column;gap:10px;}
+  .dato{display:flex;justify-content:space-between;font-size:14px;padding:9px 0;border-bottom:1px solid var(--line);}
+  .dato span:first-child{color:var(--text-dim);}
+  .datos{margin-bottom:16px;}
+  .aviso{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--ink);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;z-index:30;max-width:calc(100% - 32px);text-align:center;}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="envoltorio">
+
+  <section id="vEntrar" hidden>
+    <p class="kicker" id="eNegocio">Gymbro</p>
+    <h1>Panel</h1>
+    <div class="campo"><label for="eCorreo">Correo</label><input type="email" id="eCorreo" autocomplete="email"></div>
+    <div class="campo"><label for="eClave">Contraseña</label><input type="password" id="eClave" autocomplete="current-password"></div>
+    <button class="boton" id="eEntrar">Entrar</button>
+    <p class="mensaje" id="eMsg"></p>
+  </section>
+
+  <section id="vPanel" hidden>
+    <div class="cabecera">
+      <div>
+        <p class="kicker" id="pNegocio"></p>
+        <h1>Panel</h1>
+      </div>
+      <a class="enlace-sutil" id="pApp" href="/">Abrir la app</a>
+    </div>
+
+    <div class="cifras">
+      <div class="cifra"><b id="cActivos">0</b><span>socios activos</span></div>
+      <div class="cifra"><b id="cSemana">0</b><span>han entrenado esta semana</span></div>
+      <div class="cifra"><b id="cPendientes">0</b><span>invitaciones sin aceptar</span></div>
+    </div>
+
+    <div class="ajuste">
+      <div>
+        <p class="t">Registro libre</p>
+        <p class="d" id="dRegistro">Cualquiera con la app puede crearse una cuenta.</p>
+      </div>
+      <label class="interruptor"><input type="checkbox" id="sRegistro" aria-label="Registro libre"><span></span></label>
+    </div>
+
+    <div class="barra-socios">
+      <h2>Socios</h2>
+      <button class="boton-alta" id="bAlta">+ Dar de alta</button>
+    </div>
+    <input type="search" class="buscar" id="buscar" placeholder="Buscar por nombre o correo" aria-label="Buscar socio">
+    <div class="lista" id="lista"></div>
+
+    <p class="pie"><span id="pVersion"></span><br>Gymbro · panel por <a href="https://www.autonomialab.es" target="_blank" rel="noopener">autonomIA Lab</a><br><button class="enlace-sutil" id="bSalir" style="margin-top:12px;">Cerrar sesión</button></p>
+  </section>
+
+</div>
+
+<div class="velo" id="velo" hidden>
+  <div class="hoja" role="dialog" aria-modal="true" id="hoja"></div>
+</div>
+<div class="aviso" id="aviso" hidden></div>
+
+<script>
+const VERSION = 99;
+const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
+const FUNC_URL = 'https://dorunbacwnkwdatfscri.supabase.co/functions/v1/';
+const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
+const NEGOCIO = (new URLSearchParams(location.search).get('g') || 'war300').toLowerCase();
+// La misma sesión que la app: si el dueño ya entró en la app, entra directo.
+const SESION_KEY = 'gymbro.sesion.' + NEGOCIO;
+let token = null;
+try{ token = localStorage.getItem(SESION_KEY); }catch(e){}
+let datos = null;
+
+const $ = id => document.getElementById(id);
+document.getElementById('pVersion').textContent = 'Panel v' + VERSION;
+$('pApp').href = '/?g=' + encodeURIComponent(NEGOCIO);
+
+const TEXTO_ERROR = {
+  CREDENCIALES: 'Correo o contraseña incorrectos.',
+  BLOQUEADO: 'Demasiados intentos. Espera 15 minutos y vuelve a probar.',
+  SIN_PERMISO: 'Esta cuenta no es de administración de este gimnasio.',
+  SESION_CADUCADA: 'Tu sesión ha caducado. Vuelve a entrar.',
+  EMAIL_EN_USO: 'Ese correo ya tiene una cuenta.',
+  EMAIL_NO_VALIDO: 'Revisa el correo: no parece válido.',
+  FALTAN_DATOS: 'Falta el nombre.',
+  NO_A_TI_MISMO: 'No puedes darte de baja a ti mismo.',
+  ULTIMO_ADMIN: 'Tiene que quedar al menos una persona de administración.',
+  DEMASIADOS_INTENTOS: 'Demasiadas altas hoy. Prueba mañana.',
+  USUARIO_NO_VALIDO: 'Ese socio no es de este gimnasio.',
+  NEGOCIO_NO_VALIDO: 'Este enlace no es válido.',
+};
+const textoError = e => TEXTO_ERROR[e && e.message] || 'Ocurrió un error, inténtalo de nuevo.';
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function api(fn, args){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=> ctrl.abort(), 20000);
+  let res;
+  try{
+    res = await fetch(API_URL + fn, { method:'POST', headers:{ 'apikey': API_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify(args || {}), signal: ctrl.signal });
+  } finally { clearTimeout(timer); }
+  const text = await res.text();
+  let body = null; try{ body = text ? JSON.parse(text) : null; }catch(e){}
+  if(!res.ok) throw new Error((body && body.message) || 'ERROR');
+  return body;
+}
+function guardarToken(t){
+  token = t;
+  try{ if(t) localStorage.setItem(SESION_KEY, t); else localStorage.removeItem(SESION_KEY); }catch(e){}
+}
+
+let avisoTimer = null;
+function aviso(msg){
+  const el = $('aviso'); el.textContent = msg; el.hidden = false;
+  clearTimeout(avisoTimer); avisoTimer = setTimeout(()=> el.hidden = true, 2600);
+}
+
+// ---- Entrar ----
+function mostrarEntrar(msg, error){
+  $('vPanel').hidden = true; $('vEntrar').hidden = false;
+  $('eMsg').textContent = msg || ''; $('eMsg').classList.toggle('error', !!error);
+}
+$('eEntrar').addEventListener('click', async ()=>{
+  const email = $('eCorreo').value.trim(), clave = $('eClave').value;
+  if(/\s/.test(email)){ mostrarEntrar('El correo tiene un espacio: revísalo.', true); return; }
+  if(!email || !clave){ mostrarEntrar('Completa correo y contraseña.', true); return; }
+  $('eMsg').textContent = 'Un momento...'; $('eMsg').classList.remove('error');
+  try{
+    const r = await api('entrar_gymbro', { p_slug: NEGOCIO, p_email: email, p_password: clave });
+    if(r && r.error) throw new Error(r.error);
+    if(r.rol !== 'admin'){ guardarToken(r.token); mostrarEntrar(TEXTO_ERROR.SIN_PERMISO, true); return; }
+    guardarToken(r.token);
+    $('eClave').value = '';
+    await cargar();
+  }catch(e){ mostrarEntrar(textoError(e), true); }
+});
+$('eClave').addEventListener('keydown', e => { if(e.key === 'Enter') $('eEntrar').click(); });
+$('bSalir').addEventListener('click', async ()=>{
+  try{ await api('salir_gymbro', { p_token: token }); }catch(e){}
+  guardarToken(null);
+  try{ localStorage.removeItem(SESION_KEY + '.yo'); }catch(e){}
+  datos = null;
+  mostrarEntrar('Has cerrado la sesión.');
+});
+
+// ---- Panel ----
+async function cargar(){
+  try{
+    datos = await api('panel_gymbro', { p_token: token });
+  }catch(e){
+    if(e.message === 'SESION_CADUCADA') guardarToken(null);
+    mostrarEntrar(e.message === 'SESION_CADUCADA' ? '' : textoError(e), e.message !== 'SESION_CADUCADA');
+    return;
+  }
+  $('vEntrar').hidden = true; $('vPanel').hidden = false;
+  pintar();
+}
+
+function hace(fecha){
+  if(!fecha) return 'nunca';
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const d = new Date(fecha + 'T00:00:00');
+  const n = Math.round((hoy - d) / 86400000);
+  if(n <= 0) return 'hoy';
+  if(n === 1) return 'ayer';
+  if(n < 30) return `hace ${n} días`;
+  return d.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+}
+
+function pintar(){
+  const n = datos.negocio;
+  $('pNegocio').textContent = n.nombre; $('eNegocio').textContent = n.nombre;
+  document.title = 'Panel · ' + n.nombre;
+  const socios = datos.socios;
+  const activos = socios.filter(s => s.activo && !s.pendiente);
+  $('cActivos').textContent = activos.length;
+  $('cSemana').textContent = socios.filter(s => s.activo && s.entrenos_semana > 0).length;
+  $('cPendientes').textContent = socios.filter(s => s.activo && s.pendiente).length;
+  $('sRegistro').checked = !!n.registro_abierto;
+  $('dRegistro').textContent = n.registro_abierto
+    ? 'Cualquiera con la app puede crearse una cuenta.'
+    : 'Solo entra quien des de alta tú.';
+  pintarLista();
+}
+
+function pintarLista(){
+  const q = $('buscar').value.trim().toLowerCase();
+  const socios = datos.socios.filter(s => !q || (s.nombre + ' ' + s.email).toLowerCase().includes(q));
+  if(!socios.length){ $('lista').innerHTML = `<p class="vacio">${q ? 'Nadie coincide con la búsqueda.' : 'Todavía no hay socios.'}</p>`; return; }
+  $('lista').innerHTML = socios.map(s => {
+    const etiquetas = [
+      s.id === datos.yo ? '<span class="etiqueta tu">Tú</span>' : '',
+      s.rol === 'admin' ? '<span class="etiqueta admin">Admin</span>' : '',
+      !s.activo ? '<span class="etiqueta baja">De baja</span>' : s.pendiente ? '<span class="etiqueta pendiente">Invitación enviada</span>' : '',
+    ].join('');
+    const uso = s.pendiente && s.activo ? '<em>Aún no ha elegido su contraseña</em>'
+      : `Último entreno: ${hace(s.ultimo_entreno)} <em>· este mes: ${s.entrenos_mes}</em>`;
+    return `<button class="socio${s.activo ? '' : ' baja'}" data-id="${s.id}">
+      <div class="fila"><span class="nombre">${esc(s.nombre)}</span>${etiquetas}</div>
+      <div class="correo">${esc(s.email)}</div>
+      <div class="uso">${uso}</div></button>`;
+  }).join('');
+}
+$('buscar').addEventListener('input', pintarLista);
+$('lista').addEventListener('click', e => {
+  const b = e.target.closest('.socio'); if(!b) return;
+  abrirSocio(datos.socios.find(s => s.id === Number(b.dataset.id)));
+});
+
+$('sRegistro').addEventListener('change', async e => {
+  const abierto = e.target.checked;
+  try{
+    await api('panel_registro_gymbro', { p_token: token, p_abierto: abierto });
+    datos.negocio.registro_abierto = abierto; pintar();
+    aviso(abierto ? 'Registro libre abierto.' : 'Registro libre cerrado.');
+  }catch(err){ e.target.checked = !abierto; aviso(textoError(err)); }
+});
+
+// ---- Hojas (ventanas desde abajo) ----
+function abrirHoja(html){
+  $('hoja').innerHTML = html; $('velo').hidden = false;
+  const c = $('hoja').querySelector('.cerrar'); if(c) c.addEventListener('click', cerrarHoja);
+}
+function cerrarHoja(){ $('velo').hidden = true; $('hoja').innerHTML = ''; }
+$('velo').addEventListener('click', e => { if(e.target === $('velo')) cerrarHoja(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$('velo').hidden) cerrarHoja(); });
+const cab = (titulo, sub) => `<div class="cab"><div><h2>${titulo}</h2>${sub ? `<p class="sub">${sub}</p>` : ''}</div><button class="cerrar" aria-label="Cerrar">×</button></div>`;
+
+async function mandarInvitacion(email){
+  try{
+    await fetch(FUNC_URL + 'recuperar-contrasena-gymbro', { method:'POST',
+      headers:{ 'apikey': API_KEY, 'Content-Type':'application/json' }, body: JSON.stringify({ email, bienvenida: true }) });
+    return true;
+  }catch(e){ return false; }
+}
+
+$('bAlta').addEventListener('click', ()=>{
+  abrirHoja(cab('Dar de alta a un socio', 'Le llegará un correo para elegir su contraseña.') + `
+    <div class="campo"><label for="aNombre">Nombre</label><input id="aNombre" autocomplete="off" maxlength="60"></div>
+    <div class="campo"><label for="aCorreo">Correo</label><input type="email" id="aCorreo" autocomplete="off"></div>
+    <button class="boton" id="aGuardar">Dar de alta y mandar invitación</button>
+    <p class="mensaje" id="aMsg"></p>`);
+  $('aNombre').focus();
+  $('aGuardar').addEventListener('click', async ()=>{
+    const nombre = $('aNombre').value.trim(), email = $('aCorreo').value.trim();
+    const msg = (t, err) => { $('aMsg').textContent = t; $('aMsg').classList.toggle('error', !!err); };
+    if(!nombre){ msg('Falta el nombre.', true); return; }
+    if(/\s/.test(email) || !/^[^@]+@[^@]+\.[^@]+$/.test(email)){ msg('Revisa el correo: no parece válido.', true); return; }
+    $('aGuardar').disabled = true; msg('Un momento...');
+    try{
+      await api('panel_alta_socio_gymbro', { p_token: token, p_email: email, p_nombre: nombre });
+      const ok = await mandarInvitacion(email);
+      cerrarHoja(); await cargar();
+      aviso(ok ? `Dado de alta. Invitación enviada a ${email}.` : 'Dado de alta, pero no se pudo mandar el correo. Usa «Reenviar invitación».');
+    }catch(e){ $('aGuardar').disabled = false; msg(textoError(e), true); }
+  });
+});
+
+function abrirSocio(s){
+  const yo = s.id === datos.yo;
+  const filas = [
+    ['Rol', s.rol === 'admin' ? 'Administración' : 'Socio'],
+    ['Estado', !s.activo ? 'De baja' : s.pendiente ? 'Invitación enviada' : 'Activo'],
+    ['Alta', new Date(s.alta).toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' })],
+    ['Último entreno', hace(s.ultimo_entreno)],
+    ['Entrenos este mes', s.entrenos_mes],
+  ].map(([a, b]) => `<div class="dato"><span>${a}</span><span>${esc(b)}</span></div>`).join('');
+  const acciones = [];
+  if(s.activo && s.pendiente) acciones.push('<button class="boton secundario" data-accion="invitar">Reenviar invitación</button>');
+  if(s.activo) acciones.push(s.rol === 'admin'
+    ? '<button class="boton secundario" data-accion="quitar-admin">Quitar administración</button>'
+    : '<button class="boton secundario" data-accion="hacer-admin">Hacer administrador</button>');
+  if(!yo) acciones.push(s.activo
+    ? '<button class="boton peligro" data-accion="baja">Dar de baja</button>'
+    : '<button class="boton" data-accion="reactivar">Reactivar</button>');
+  abrirHoja(cab(esc(s.nombre) + (yo ? ' (tú)' : ''), esc(s.email)) + `<div class="datos">${filas}</div>
+    <div class="acciones">${acciones.join('')}</div><p class="mensaje" id="sMsg"></p>`);
+  $('hoja').querySelectorAll('[data-accion]').forEach(b => b.addEventListener('click', () => accion(s, b.dataset.accion)));
+}
+
+function confirmar(titulo, texto, boton, peligro, alConfirmar){
+  abrirHoja(cab(titulo) + `<p style="font-size:15px;line-height:1.5;margin:0 0 18px;">${texto}</p>
+    <div class="acciones"><button class="boton ${peligro ? 'peligro' : ''}" id="cSi">${boton}</button>
+    <button class="boton secundario" id="cNo">Cancelar</button></div><p class="mensaje" id="cMsg"></p>`);
+  $('cNo').addEventListener('click', cerrarHoja);
+  $('cSi').addEventListener('click', async ()=>{
+    $('cSi').disabled = true;
+    try{ await alConfirmar(); }
+    catch(e){ $('cSi').disabled = false; $('cMsg').textContent = textoError(e); $('cMsg').classList.add('error'); }
+  });
+}
+
+async function accion(s, a){
+  const nombre = esc(s.nombre);
+  if(a === 'invitar'){
+    const ok = await mandarInvitacion(s.email);
+    cerrarHoja(); aviso(ok ? `Invitación enviada a ${s.email}.` : 'No se pudo mandar. Revisa la conexión.');
+    return;
+  }
+  if(a === 'baja') return confirmar(`¿Dar de baja a ${nombre}?`, 'Ya no podrá entrar en la app. Sus datos se guardan y puedes reactivarlo cuando quieras.', 'Sí, dar de baja', true, async ()=>{
+    await api('panel_estado_socio_gymbro', { p_token: token, p_usuario: s.id, p_activo: false });
+    cerrarHoja(); await cargar(); aviso(`${s.nombre} está de baja.`);
+  });
+  if(a === 'reactivar') return confirmar(`¿Reactivar a ${nombre}?`, 'Podrá volver a entrar con su correo y su contraseña.', 'Sí, reactivar', false, async ()=>{
+    await api('panel_estado_socio_gymbro', { p_token: token, p_usuario: s.id, p_activo: true });
+    cerrarHoja(); await cargar(); aviso(`${s.nombre} vuelve a estar activo.`);
+  });
+  if(a === 'hacer-admin') return confirmar(`¿Hacer administrador a ${nombre}?`, 'Podrá entrar en este panel: ver a los socios, darlos de alta y de baja y cambiar el registro libre.', 'Sí, hacer administrador', false, async ()=>{
+    await api('panel_rol_socio_gymbro', { p_token: token, p_usuario: s.id, p_rol: 'admin' });
+    cerrarHoja(); await cargar(); aviso(`${s.nombre} ya es administrador.`);
+  });
+  if(a === 'quitar-admin') return confirmar(`¿Quitar la administración a ${nombre}?`, s.id === datos.yo
+    ? 'Dejarás de poder entrar en este panel.' : 'Dejará de poder entrar en este panel. Seguirá usando la app como socio.', 'Sí, quitarla', true, async ()=>{
+    await api('panel_rol_socio_gymbro', { p_token: token, p_usuario: s.id, p_rol: 'socio' });
+    cerrarHoja();
+    if(s.id === datos.yo){ mostrarEntrar('Ya no tienes administración en este gimnasio.'); return; }
+    await cargar(); aviso(`${s.nombre} ya no es administrador.`);
+  });
+}
+
+// ---- Arranque ----
+(async ()=>{
+  try{ const n = await api('negocio_gymbro', { p_slug: NEGOCIO }); $('eNegocio').textContent = n.nombre; }catch(e){}
+  if(token) await cargar(); else mostrarEntrar('');
+})();
+</script>
+</body>
+</html>
