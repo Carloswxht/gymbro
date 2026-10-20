@@ -151,11 +151,16 @@
 <div class="aviso" id="aviso" hidden></div>
 
 <script>
-const VERSION = 102;
+const VERSION = 103;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const FUNC_URL = 'https://dorunbacwnkwdatfscri.supabase.co/functions/v1/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
-const NEGOCIO = (new URLSearchParams(location.search).get('g') || 'war300').toLowerCase();
+// v103 — sin ?g= se abre el último gimnasio de este móvil o la página de Gymbro.
+const NEGOCIO = (new URLSearchParams(location.search).get('g') || '').toLowerCase();
+if(!NEGOCIO){
+  let g = null; try{ g = localStorage.getItem('gymbro.ultimo'); }catch(e){}
+  location.replace(g ? '/panel/?g=' + encodeURIComponent(g) : '/inicio/');
+}
 // La misma sesión que la app: si el dueño ya entró en la app, entra directo.
 const SESION_KEY = 'gymbro.sesion.' + NEGOCIO;
 let token = null;

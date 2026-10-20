@@ -15,7 +15,7 @@ const OUT = process.argv[2];
   const paso = async (n, f) => { try { await f(); console.log('OK  ' + n); } catch (e) { console.log('MAL ' + n + ': ' + e.message.split('\n')[0]); } };
   const msg = () => page.textContent('#authMsg');
   const vis = s => page.isVisible(s);
-  await page.goto('http://127.0.0.1:8091/'); await page.waitForTimeout(800);
+  await page.goto('http://127.0.0.1:8091/?g=war300'); await page.waitForTimeout(800);
   await paso('1 se ve el enlace «¿Has olvidado…?»', async () => { if (!await vis('#authForgot')) throw new Error('no'); await page.screenshot({ path: `${OUT}/r1-entrar.png` }); });
   await paso('2 correo con espacio', async () => {
     await page.fill('#authEmail', 'carloswxht+war300@gmail.com y'); await page.fill('#authPass', 'x'); await page.click('#authSubmit'); await page.waitForTimeout(300);
@@ -31,7 +31,7 @@ const OUT = process.argv[2];
   let token;
   await paso('4 se creó el enlace', async () => { const e = await (await fetch('http://127.0.0.1:8091/__ultimo_enlace')).json(); token = e && e.token; if (!token) throw new Error(JSON.stringify(e)); });
   await paso('5 el enlace abre «Contraseña nueva»', async () => {
-    await page.goto('http://127.0.0.1:8091/?g=war300#recuperar=' + token); await page.waitForTimeout(800);
+    await page.goto('about:blank'); await page.goto('http://127.0.0.1:8091/?g=war300#recuperar=' + token); await page.waitForTimeout(800);
     if ((await page.textContent('#authTitle')) !== 'Contraseña nueva' || await vis('#authEmail') || !await vis('#authPass2')) throw new Error('pantalla mal');
     if (page.url().includes('recuperar')) throw new Error('el código sigue en la dirección'); await page.screenshot({ path: `${OUT}/r4-nueva.png` });
   });

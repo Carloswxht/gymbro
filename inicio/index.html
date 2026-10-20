@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0b0d">
+<meta name="color-scheme" content="dark">
+<title>Gymbro · autonomIA Lab</title>
+<meta name="description" content="Gymbro: la app de rutinas de tu gimnasio. De autonomIA Lab.">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/gymbro-192.png">
+<link rel="apple-touch-icon" href="/icons/gymbro-192.png">
+<link rel="stylesheet" href="/plataforma/plataforma.css?v=103">
+<style>
+  .portada{ display:flex; flex-direction:column; gap:14px; padding:18px 0 6px; }
+  .portada img{ width:64px; height:64px; border-radius:16px; }
+  .portada h1{ font-size:34px; }
+  .portada .sub{ margin-top:0; font-size:16px; }
+  .puntos{ display:flex; flex-direction:column; gap:10px; list-style:none; }
+  .puntos li{ display:flex; gap:10px; color:var(--text-dim); font-size:14.5px; }
+  .puntos li::before{ content:"›"; color:var(--blue-bright); font-family:var(--font-mono); font-weight:600; }
+  .caja h2{ margin-bottom:6px; }
+  .caja p{ color:var(--text-dim); font-size:14.5px; }
+  .caja .form{ margin-top:14px; }
+</style>
+</head>
+<body>
+
+<!-- PÁGINA DE GYMBRO (v103): lo que se ve al abrir gymbro.autonomialab.es sin
+     ?g= y sin ningún gimnasio guardado en el móvil. Estilo de autonomIA Lab. -->
+<header class="cab">
+  <a class="marca" href="https://www.autonomialab.es" target="_blank" rel="noopener" aria-label="autonomIA Lab">autonomIA Lab<span class="cursor" aria-hidden="true"></span></a>
+  <span class="cab-producto">Gymbro</span>
+</header>
+
+<main class="app">
+  <section class="vista">
+    <div class="portada">
+      <img src="/icons/gymbro-192.png" alt="">
+      <p class="eti">Gymbro</p>
+      <h1>La app de rutinas de tu gimnasio</h1>
+      <p class="sub">Cada socio programa su entreno, apunta sus pesos y ve cómo progresa. Con el nombre, el logo y los colores de su gimnasio.</p>
+    </div>
+    <ul class="puntos">
+      <li>Rutinas por días y por músculos, con vídeos de cada ejercicio.</li>
+      <li>Pesos, series y repeticiones guardados en la cuenta de cada socio.</li>
+      <li>Panel para el dueño: altas y bajas de socios por correo.</li>
+      <li>Se instala en el móvil como una app, en Android y en iPhone.</li>
+    </ul>
+
+    <div class="caja">
+      <h2>¿Tu gimnasio usa Gymbro?</h2>
+      <p>Entra con el enlace que te ha dado tu gimnasio. Si no lo tienes, escribe su nombre corto (lo que va después de <span class="mono">?g=</span>).</p>
+      <form class="form" id="fGimnasio" novalidate>
+        <label class="campo"><span>Nombre corto del gimnasio</span><input id="gSlug" maxlength="40" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="mi-gimnasio"></label>
+        <p class="error" id="gError" role="alert" hidden></p>
+        <button class="btn btn-azul" type="submit" id="gIr">Entrar en mi gimnasio</button>
+      </form>
+    </div>
+
+    <div class="caja">
+      <h2>¿Tienes un gimnasio?</h2>
+      <p>Gymbro es de autonomIA Lab: aplicaciones a medida con cuota mensual (alojamiento, mantenimiento y soporte incluidos).</p>
+      <div class="form"><a class="btn btn-borde" href="https://www.autonomialab.es" target="_blank" rel="noopener">Conoce autonomIA Lab</a></div>
+    </div>
+  </section>
+</main>
+
+<footer class="pie">
+  <span id="pVersion"></span>
+  <a href="https://www.autonomialab.es" target="_blank" rel="noopener">Gymbro · de <b>autonomIA Lab</b></a>
+</footer>
+
+<script>
+const VERSION = 103;
+const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
+const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
+const $ = id => document.getElementById(id);
+$('pVersion').textContent = 'Gymbro v' + VERSION;
+
+// Comprueba que el gimnasio existe antes de abrirlo (así no se llega a una
+// app con «Este enlace no es válido»).
+$('fGimnasio').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const slug = $('gSlug').value.trim().toLowerCase().replace(/\s+/g, '-').replace(/\.+$/, '');
+  const err = $('gError'); err.hidden = true;
+  if(!/^[a-z0-9][a-z0-9-]{1,39}$/.test(slug)){ err.textContent = 'Escribe el nombre corto tal como viene en el enlace (letras, números y guiones).'; err.hidden = false; return; }
+  $('gIr').disabled = true;
+  try{
+    const res = await fetch(API_URL + 'negocio_gymbro', { method: 'POST',
+      headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_slug: slug }) });
+    if(!res.ok) throw new Error('NO');
+    location.href = '/?g=' + encodeURIComponent(slug);
+  }catch(e){
+    err.textContent = 'No encontramos ese gimnasio. Revisa el enlace que te dieron o pregunta en tu gimnasio.'; err.hidden = false;
+    $('gIr').disabled = false;
+  }
+});
+</script>
+</body>
+</html>

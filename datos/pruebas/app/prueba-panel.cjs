@@ -27,7 +27,7 @@ const OUT = process.argv[2];
     await page.fill('#eCorreo', 'carloswxht+war300@gmail.com'); await page.fill('#eClave', 'clave-prueba-1'); await page.click('#eEntrar'); await page.waitForTimeout(1200);
     if (await page.isHidden('#vPanel')) throw new Error(await page.textContent('#eMsg'));
     inicial = await page.locator('.socio').count(); if (inicial < 2) throw new Error('socios: ' + inicial);
-    if ((await page.textContent('#pVersion')) !== 'Panel v102') throw new Error('versión'); await cap('p2-panel');
+    if ((await page.textContent('#pVersion')) !== 'Panel v103') throw new Error('versión'); await cap('p2-panel');
   });
   await paso('3 dar de alta a un socio (manda invitación)', async () => {
     await page.click('#bAlta'); await page.fill('#aNombre', 'Socia ejemplo'); await page.fill('#aCorreo', 'socia@ejemplo.test'); await cap('p3-alta');
