@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0b0d">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark">
+<title>Plataforma · Gymbro</title>
+<link rel="stylesheet" href="plataforma.css?v=101">
+</head>
+<body>
+
+<!-- PLATAFORMA DE GYMBRO (v101): el panel de autonomIA Lab para administrar los
+     gimnasios. Estilo de autonomIA Lab (igual que la plataforma de MultiBar).
+     Solo entra la cuenta de plataforma de Carlos (la misma que en MultiBar). -->
+<header class="cab">
+  <a class="marca" href="#" aria-label="autonomIA Lab">autonomIA Lab<span class="cursor" aria-hidden="true"></span></a>
+  <span class="cab-producto">Gymbro</span>
+  <button class="cab-salir" id="bSalir" type="button" hidden>Salir</button>
+</header>
+
+<main class="app">
+
+  <!-- ENTRAR -->
+  <section class="vista" id="vEntrar" hidden>
+    <p class="eti">Plataforma</p>
+    <h1>Administra Gymbro</h1>
+    <p class="sub">Tus gimnasios, sus opciones y las altas nuevas. Solo para la cuenta de autonomIA Lab.</p>
+    <form id="fEntrar" class="caja form" novalidate>
+      <label class="campo"><span>Correo</span><input id="eEmail" type="email" inputmode="email" autocomplete="username" autocapitalize="off" required></label>
+      <label class="campo"><span>Contraseña</span><input id="ePass" type="password" autocomplete="current-password" required></label>
+      <p class="error" id="eError" role="alert" hidden></p>
+      <button class="btn btn-azul" type="submit">Entrar</button>
+      <button class="enlace" id="bOlvido" type="button">¿Has olvidado tu contraseña?</button>
+    </form>
+  </section>
+
+  <!-- HE OLVIDADO LA CONTRASEÑA (la cuenta de plataforma es la misma que en MultiBar) -->
+  <section class="vista" id="vOlvido" hidden>
+    <button class="volver" type="button" data-ir="">← Entrar</button>
+    <h1>Contraseña nueva</h1>
+    <p class="sub">Te mandamos un enlace para elegir otra. Se abre en la plataforma de MultiBar: la contraseña es la misma para las dos.</p>
+    <form id="fOlvido" class="caja form" novalidate>
+      <label class="campo"><span>Correo</span><input id="oEmail" type="email" inputmode="email" autocomplete="username" autocapitalize="off" required></label>
+      <p class="ok" id="oOk" hidden>Si el correo es de la cuenta de plataforma, te llegará un enlace en unos minutos. Mira también en «Spam».</p>
+      <p class="error" id="oError" role="alert" hidden></p>
+      <button class="btn btn-azul" type="submit">Mandar enlace</button>
+    </form>
+  </section>
+
+  <!-- LISTA DE GIMNASIOS -->
+  <section class="vista" id="vLista" hidden>
+    <div class="titulo-fila">
+      <div><p class="eti">Gymbro</p><h1>Gimnasios</h1></div>
+      <button class="btn btn-azul btn-peq" type="button" data-ir="alta">+ Alta</button>
+    </div>
+    <div class="resumen" id="lResumen"></div>
+    <div class="lista" id="lLista"><p class="cargando">Cargando…</p></div>
+  </section>
+
+  <!-- FICHA DE UN GIMNASIO -->
+  <section class="vista" id="vFicha" hidden>
+    <button class="volver" type="button" data-ir="">← Gimnasios</button>
+    <div id="fContenido"><p class="cargando">Cargando…</p></div>
+  </section>
+
+  <!-- ALTA DE UN GIMNASIO -->
+  <section class="vista" id="vAlta" hidden>
+    <button class="volver" type="button" data-ir="">← Gimnasios</button>
+    <p class="eti">Alta</p>
+    <h1>Nuevo gimnasio</h1>
+    <p class="sub">Se crea el gimnasio y la cuenta del dueño. Le llega un correo para elegir su contraseña (vale 3 días).</p>
+    <form id="fAlta" class="caja form" novalidate>
+      <label class="campo"><span>Nombre del gimnasio</span><input id="aNombre" maxlength="60" autocomplete="off" required></label>
+      <label class="campo"><span>Dirección corta</span><input id="aSlug" maxlength="40" autocapitalize="off" autocomplete="off" spellcheck="false" required>
+        <small class="mono" id="aSlugVer"></small></label>
+      <label class="campo"><span>Correo del dueño</span><input id="aEmail" type="email" inputmode="email" autocapitalize="off" autocomplete="off" required></label>
+      <label class="campo"><span>Nombre del dueño <i>(opcional)</i></span><input id="aDueno" maxlength="60" autocomplete="off"></label>
+      <label class="opcion opcion-suelta">
+        <span class="op-texto"><b>Registro libre</b><span>Cualquiera con la app puede crearse una cuenta en este gimnasio. Si no, solo entran los que dé de alta el dueño.</span></span>
+        <span class="interruptor"><input type="checkbox" id="aRegistro"><span></span></span>
+      </label>
+      <p class="error" id="aError" role="alert" hidden></p>
+      <button class="btn btn-azul" type="submit" id="aGuardar">Dar de alta y mandar invitación</button>
+    </form>
+  </section>
+
+  <!-- ALTA HECHA -->
+  <section class="vista" id="vHecho" hidden>
+    <p class="eti">Hecho</p>
+    <h1 id="hTitulo">Gimnasio dado de alta</h1>
+    <div class="caja">
+      <div class="hecho-lista" id="hLista"></div>
+      <div class="hecho-botones">
+        <a class="btn btn-azul" id="hFicha" href="#">Ver la ficha</a>
+        <a class="btn btn-borde" href="#">Volver a la lista</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <span id="pVersion"></span>
+  <a href="https://www.autonomialab.es" target="_blank" rel="noopener">Plataforma de <b>autonomIA Lab</b></a>
+</footer>
+
+<div class="velo" id="velo" hidden>
+  <div class="caja dialogo" role="dialog" aria-modal="true" aria-labelledby="dTitulo">
+    <h2 id="dTitulo"></h2>
+    <p id="dTexto"></p>
+    <div class="dialogo-botones">
+      <button class="btn btn-borde" type="button" id="dNo">Cancelar</button>
+      <button class="btn btn-azul" type="button" id="dSi"></button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+const VERSION = 101;
+const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
+const FUNC_URL = 'https://dorunbacwnkwdatfscri.supabase.co/functions/v1/';
+const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
+// Sesión de plataforma aparte de la de la app y del panel del dueño (12 h).
+const SESION_KEY = 'gymbro.plataforma';
+let token = null;
+try{ token = localStorage.getItem(SESION_KEY); }catch(e){}
+
+const $ = id => document.getElementById(id);
+$('pVersion').textContent = 'Plataforma v' + VERSION;
+
+const TEXTO_ERROR = {
+  CREDENCIALES: 'Correo o contraseña incorrectos.',
+  BLOQUEADO: 'Demasiados intentos. Espera 15 minutos y vuelve a probar.',
+  SESION_CADUCADA: 'Tu sesión ha caducado. Vuelve a entrar.',
+  FALTAN_DATOS: 'Falta el nombre del gimnasio.',
+  SLUG_NO_VALIDO: 'La dirección corta solo puede llevar letras sin tildes, números y guiones (de 2 a 40).',
+  SLUG_EN_USO: 'Esa dirección corta ya la usa otro negocio.',
+  EMAIL_NO_VALIDO: 'Revisa el correo: no parece válido.',
+  EMAIL_EN_USO: 'Ese correo ya tiene una cuenta (en Gymbro o en otro producto). Usa otro.',
+  GIMNASIO_NO_VALIDO: 'Ese gimnasio no existe.',
+};
+const textoError = e => TEXTO_ERROR[e && e.message] || 'Ocurrió un error, inténtalo de nuevo.';
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// El dictado añade a veces espacios o un punto al final del correo.
+const limpiarCorreo = s => String(s || '').trim().replace(/\.+$/, '');
+
+async function api(fn, args){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=> ctrl.abort(), 20000);
+  let res;
+  try{
+    res = await fetch(API_URL + fn, { method:'POST', headers:{ 'apikey': API_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify(args || {}), signal: ctrl.signal });
+  } finally { clearTimeout(timer); }
+  const text = await res.text();
+  let body = null; try{ body = text ? JSON.parse(text) : null; }catch(e){}
+  if(!res.ok) throw new Error((body && body.message) || 'ERROR');
+  return body;
+}
+function guardarToken(t){
+  token = t;
+  try{ if(t) localStorage.setItem(SESION_KEY, t); else localStorage.removeItem(SESION_KEY); }catch(e){}
+}
+// Llamada con la sesión de plataforma; si caduca, vuelve a la entrada.
+async function rpc(fn, args){
+  try{ return await api(fn, Object.assign({ p_token: token }, args || {})); }
+  catch(e){
+    if(e.message === 'SESION_CADUCADA'){ guardarToken(null); mostrar('vEntrar'); }
+    throw e;
+  }
+}
+// Correo de bienvenida (o, si ya eligió contraseña, el de «contraseña nueva»).
+async function mandarInvitacion(email){
+  try{
+    const r = await fetch(FUNC_URL + 'recuperar-contrasena-gymbro', { method:'POST',
+      headers:{ 'apikey': API_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ email, bienvenida: true }) });
+    return r.ok;
+  }catch(e){ return false; }
+}
+
+/* ---------- Vistas ---------- */
+const VISTAS = ['vEntrar', 'vOlvido', 'vLista', 'vFicha', 'vAlta', 'vHecho'];
+function mostrar(id){
+  VISTAS.forEach(v => $(v).hidden = v !== id);
+  $('bSalir').hidden = !token || id === 'vEntrar' || id === 'vOlvido';
+  window.scrollTo(0, 0);
+}
+let toastTimer = null;
+function toast(texto, mal){
+  const t = $('toast'); t.textContent = texto; t.classList.toggle('mal', !!mal); t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=> t.hidden = true, 3500);
+}
+function confirmar(titulo, texto, si, peligro){
+  return new Promise(ok => {
+    $('dTitulo').textContent = titulo; $('dTexto').textContent = texto; $('dSi').textContent = si;
+    $('dSi').className = 'btn ' + (peligro ? 'btn-rojo lleno' : 'btn-azul');
+    $('velo').hidden = false;
+    const fin = v => { $('velo').hidden = true; $('dSi').onclick = $('dNo').onclick = $('velo').onclick = null; ok(v); };
+    $('dSi').onclick = () => fin(true);
+    $('dNo').onclick = () => fin(false);
+    $('velo').onclick = ev => { if(ev.target === $('velo')) fin(false); };
+  });
+}
+const fecha = f => f ? new Date(f).toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) : '';
+function haceDias(f){
+  if(!f) return 'nunca';
+  const d = Math.round((new Date(new Date().toDateString()) - new Date(f + 'T00:00:00')) / 86400000);
+  return d <= 0 ? 'hoy' : d === 1 ? 'ayer' : 'hace ' + d + ' días';
+}
+document.querySelectorAll('[data-ir]').forEach(b => b.addEventListener('click', () => {
+  const ir = b.getAttribute('data-ir');
+  if(!token && !ir){ mostrar('vEntrar'); return; }
+  location.hash = ir ? '#' + ir : '#';
+  if(location.hash === '' || location.hash === '#') router();
+}));
+
+/* ---------- Entrar, salir y contraseña ---------- */
+$('fEntrar').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const email = limpiarCorreo($('eEmail').value), pass = $('ePass').value;
+  const err = $('eError'); err.hidden = true;
+  if(!email || !pass){ err.textContent = 'Completa correo y contraseña.'; err.hidden = false; return; }
+  try{
+    const r = await api('plataforma_entrar', { p_email: email, p_password: pass });
+    if(!r || r.error || !r.token){ throw new Error((r && r.error) || 'CREDENCIALES'); }
+    guardarToken(r.token); $('ePass').value = '';
+    router();
+  }catch(e){ err.textContent = textoError(e); err.hidden = false; }
+});
+$('bOlvido').addEventListener('click', () => { $('oEmail').value = limpiarCorreo($('eEmail').value); $('oOk').hidden = true; $('oError').hidden = true; mostrar('vOlvido'); });
+$('fOlvido').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const email = limpiarCorreo($('oEmail').value);
+  $('oError').hidden = true;
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ $('oError').textContent = 'Revisa el correo: no parece válido.'; $('oError').hidden = false; return; }
+  try{
+    await fetch(FUNC_URL + 'recuperar-contrasena', { method:'POST', headers:{ 'apikey': API_KEY, 'Content-Type':'application/json' }, body: JSON.stringify({ email }) });
+  }catch(e){ /* la pantalla dice siempre lo mismo */ }
+  $('oOk').hidden = false;
+});
+$('bSalir').addEventListener('click', async () => {
+  if(token){ try{ await api('personal_salir', { p_token: token }); }catch(e){ /* ya está fuera */ } }
+  guardarToken(null); location.hash = ''; mostrar('vEntrar');
+});
+
+/* ---------- Lista ---------- */
+async function pintarLista(){
+  mostrar('vLista');
+  $('lLista').innerHTML = '<p class="cargando">Cargando…</p>';
+  let gs;
+  try{ gs = await rpc('plataforma_gimnasios_gymbro'); }
+  catch(e){ $('lLista').innerHTML = '<p class="error">' + esc(textoError(e)) + '</p>'; return; }
+  const activos = gs.filter(g => g.activo);
+  const suma = k => activos.reduce((t, g) => t + Number(g.cifras[k] || 0), 0);
+  $('lResumen').innerHTML =
+    `<div class="dato azul"><b>${activos.length}</b><span>gimnasios activos</span></div>
+     <div class="dato"><b>${suma('socios')}</b><span>socios</span></div>
+     <div class="dato"><b>${suma('activos_7d')}</b><span>entrenan (7 días)</span></div>`;
+  if(!gs.length){ $('lLista').innerHTML = '<p class="vacio">Aún no hay gimnasios. Da de alta el primero con «+ Alta».</p>'; return; }
+  $('lLista').innerHTML = gs.map(g => `
+    <a class="tarjeta${g.activo ? '' : ' baja'}" href="#g/${g.id}">
+      <div class="t-arriba">
+        <div><div class="t-nombre">${esc(g.nombre)}</div><div class="t-slug">${esc(g.slug)}</div></div>
+        <span class="chip${g.activo ? '' : ' baja'}">${g.activo ? 'Activo' : 'De baja'}</span>
+      </div>
+      <div class="t-numeros">
+        <span><b>${g.cifras.socios}</b> ${g.cifras.socios == 1 ? 'socio' : 'socios'}</span>
+        <span class="azul"><b>${g.cifras.activos_7d}</b> entrenan</span>
+        <span><b>${g.cifras.entrenos_7d}</b> entrenos 7 d</span>
+        ${g.cifras.pendientes ? `<span><b>${g.cifras.pendientes}</b> ${g.cifras.pendientes == 1 ? 'invitado' : 'invitados'}</span>` : ''}
+      </div>
+      <div class="t-ultimo">Último entreno: ${esc(haceDias(g.cifras.ultimo))}${g.registro_abierto ? ' · registro libre' : ''}</div>
+    </a>`).join('');
+}
+
+/* ---------- Ficha ---------- */
+async function pintarFicha(id){
+  mostrar('vFicha');
+  const caja = $('fContenido');
+  caja.innerHTML = '<p class="cargando">Cargando…</p>';
+  let g;
+  try{ g = await rpc('plataforma_gimnasio_gymbro', { p_id: Number(id) }); }
+  catch(e){ caja.innerHTML = '<p class="error">' + esc(textoError(e)) + '</p>'; return; }
+  const c = g.cifras, app = '/?g=' + encodeURIComponent(g.slug), panel = '/panel/?g=' + encodeURIComponent(g.slug);
+  caja.innerHTML = `
+    <div class="f-cabeza">
+      <div class="t-arriba"><h1>${esc(g.nombre)}</h1><span class="chip${g.activo ? '' : ' baja'}">${g.activo ? 'Activo' : 'De baja'}</span></div>
+      <div class="t-slug">gymbro.autonomialab.es${esc(app)}</div>
+      <div class="f-meta">Alta: ${esc(fecha(g.alta))}${g.baja ? ' · De baja desde ' + esc(fecha(g.baja)) : ''}</div>
+    </div>
+    <div class="f-enlaces">
+      <a class="btn btn-borde btn-peq" href="${esc(app)}" target="_blank" rel="noopener">Abrir la app</a>
+      <a class="btn btn-borde btn-peq" href="${esc(panel)}" target="_blank" rel="noopener">Panel del dueño</a>
+    </div>
+    <div class="seccion">
+      <h2>Números</h2>
+      <div class="numeros">
+        <div class="dato azul"><b>${c.socios}</b><span>${c.socios == 1 ? 'socio' : 'socios'}</span></div>
+        <div class="dato"><b>${c.activos_7d}</b><span>entrenan (7 días)</span></div>
+        <div class="dato"><b>${c.entrenos_30d}</b><span>entrenos (30 días)</span></div>
+        <div class="dato"><b>${c.pendientes}</b><span>invitados sin entrar</span></div>
+        <div class="dato"><b>${c.de_baja}</b><span>de baja</span></div>
+        <div class="dato dinero"><b>${esc(haceDias(c.ultimo))}</b><span>último entreno</span></div>
+      </div>
+      <p class="nota">Sin pesos ni rutinas de nadie: son datos personales de cada socio.</p>
+    </div>
+    <div class="seccion">
+      <h2>Opciones</h2>
+      <div class="opciones">
+        <label class="opcion">
+          <span class="op-texto"><b>Registro libre</b><span>Cualquiera con la app puede crearse una cuenta. Apagado: solo entran los que dé de alta el dueño.</span></span>
+          <span class="interruptor"><input type="checkbox" id="fRegistro" ${g.registro_abierto ? 'checked' : ''}><span></span></span>
+        </label>
+      </div>
+    </div>
+    <div class="seccion">
+      <h2>Administración</h2>
+      <p class="nota">Los socios los gestiona el dueño desde su panel.</p>
+      <div class="personas">${g.admins.length ? g.admins.map(a => `
+        <div class="persona">
+          <div class="p-texto"><b>${esc(a.nombre)}</b><span>${esc(a.email)}</span>
+            <span class="p-rol${a.pendiente ? ' p-pend' : ''}">${!a.activo ? 'De baja' : a.pendiente ? 'Invitación enviada' : 'Admin'}</span></div>
+          ${a.activo && a.pendiente ? `<button class="btn btn-borde" type="button" data-invitar="${esc(a.email)}">Reenviar</button>` : ''}
+        </div>`).join('') : '<div class="persona"><div class="p-texto"><span>Sin administración.</span></div></div>'}
+      </div>
+    </div>
+    <div class="seccion">
+      <h2>Estado</h2>
+      ${g.activo
+        ? `<button class="btn btn-rojo" type="button" id="fEstado">Dar de baja el gimnasio</button>
+           <p class="nota">No se borra nada: nadie podrá entrar en la app ni en el panel hasta que lo reactives.</p>`
+        : `<button class="btn btn-azul" type="button" id="fEstado">Reactivar el gimnasio</button>`}
+    </div>`;
+
+  $('fRegistro').addEventListener('change', async ev => {
+    const abierto = ev.target.checked; ev.target.disabled = true;
+    try{ await rpc('plataforma_registro_gymbro', { p_id: g.id, p_abierto: abierto }); toast(abierto ? 'Registro libre encendido.' : 'Registro libre apagado.'); }
+    catch(e){ ev.target.checked = !abierto; toast(textoError(e), true); }
+    ev.target.disabled = false;
+  });
+  caja.querySelectorAll('[data-invitar]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    const ok = await mandarInvitacion(b.getAttribute('data-invitar'));
+    toast(ok ? 'Invitación enviada a ' + b.getAttribute('data-invitar') : 'No se pudo mandar. Inténtalo de nuevo.', !ok);
+    b.disabled = false;
+  }));
+  $('fEstado').addEventListener('click', async () => {
+    const baja = g.activo;
+    const si = await confirmar(baja ? `¿Dar de baja ${g.nombre}?` : `¿Reactivar ${g.nombre}?`,
+      baja ? 'Nadie podrá entrar en la app ni en el panel del dueño. No se borra nada y se puede reactivar.'
+           : 'Sus socios podrán volver a entrar con su correo y su contraseña.',
+      baja ? 'Sí, dar de baja' : 'Sí, reactivar', baja);
+    if(!si) return;
+    try{ await rpc('plataforma_estado_gimnasio_gymbro', { p_id: g.id, p_activo: !baja }); toast(baja ? 'Gimnasio dado de baja.' : 'Gimnasio reactivado.'); pintarFicha(g.id); }
+    catch(e){ toast(textoError(e), true); }
+  });
+}
+
+/* ---------- Alta ---------- */
+let slugTocado = false;
+const hacerSlug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+function verSlug(){ const s = $('aSlug').value; $('aSlugVer').textContent = s ? 'gymbro.autonomialab.es/?g=' + s : ''; }
+function abrirAlta(){
+  ['aNombre', 'aSlug', 'aEmail', 'aDueno'].forEach(i => $(i).value = '');
+  $('aRegistro').checked = false; $('aError').hidden = true; $('aGuardar').disabled = false; slugTocado = false; verSlug();
+  mostrar('vAlta');
+}
+$('aNombre').addEventListener('input', () => { if(!slugTocado){ $('aSlug').value = hacerSlug($('aNombre').value); verSlug(); } });
+$('aSlug').addEventListener('input', () => { slugTocado = true; verSlug(); });
+$('fAlta').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const datos = { nombre: $('aNombre').value.trim(), slug: $('aSlug').value.trim().toLowerCase(),
+                  email: limpiarCorreo($('aEmail').value).toLowerCase(), dueno: $('aDueno').value.trim(),
+                  registro_abierto: $('aRegistro').checked };
+  const err = $('aError'); err.hidden = true;
+  if(!datos.nombre){ err.textContent = TEXTO_ERROR.FALTAN_DATOS; err.hidden = false; return; }
+  if(/\s/.test(datos.email) || !/^[^@]+@[^@]+\.[^@]+$/.test(datos.email)){ err.textContent = TEXTO_ERROR.EMAIL_NO_VALIDO; err.hidden = false; return; }
+  $('aGuardar').disabled = true;
+  try{
+    const r = await rpc('plataforma_alta_gimnasio_gymbro', { p_datos: datos });
+    const ok = await mandarInvitacion(r.email);
+    $('hTitulo').textContent = datos.nombre + ' dado de alta';
+    $('hLista').innerHTML = `
+      <div>App: <b class="mono">gymbro.autonomialab.es/?g=${esc(r.slug)}</b></div>
+      <div>Panel del dueño: <b class="mono">gymbro.autonomialab.es/panel/?g=${esc(r.slug)}</b></div>
+      <div>Dueño: <b>${esc(r.email)}</b> — ${ok ? 'le ha llegado el correo para elegir su contraseña (vale 3 días).' : 'no se pudo mandar el correo: usa «Reenviar» en la ficha.'}</div>
+      <div>Registro libre: <b>${datos.registro_abierto ? 'encendido' : 'apagado'}</b></div>`;
+    $('hFicha').href = '#g/' + r.id;
+    location.hash = '#hecho';
+  }catch(e){ err.textContent = textoError(e); err.hidden = false; $('aGuardar').disabled = false; }
+});
+
+/* ---------- Rutas ---------- */
+function router(){
+  if(!token){ mostrar('vEntrar'); return; }
+  const h = location.hash.replace(/^#/, '');
+  let m;
+  if(h === 'alta') abrirAlta();
+  else if(h === 'hecho' && $('hLista').innerHTML) mostrar('vHecho');
+  else if((m = h.match(/^g\/(\d+)$/))) pintarFicha(m[1]);
+  else pintarLista();
+}
+window.addEventListener('hashchange', router);
+(async () => {
+  if(token){
+    try{ await api('plataforma_yo', { p_token: token }); }
+    catch(e){ if(e.message === 'SESION_CADUCADA') guardarToken(null); }
+  }
+  router();
+})();
+</script>
+</body>
+</html>

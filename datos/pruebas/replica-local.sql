@@ -52,6 +52,12 @@ begin
   insert into comun.sesiones (token_hash, usuario_id, expires_at) values (privado.digest(v_token, 'sha256'), u.id, now() + interval '12 hours');
   return jsonb_build_object('token', v_token);
 end $f$;
+CREATE FUNCTION public.plataforma_yo(p_token text) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','comun','multibar','privado','pg_temp' AS $f$
+declare u comun.usuarios;
+begin
+  u := privado.plataforma_de_token(p_token);
+  return jsonb_build_object('nombre', u.name, 'email', u.email);
+end $f$;
 -- Datos de ejemplo: un bar con un camarero y la cuenta de plataforma.
 insert into comun.negocios (slug, nombre, tipo) values ('bar-ejemplo','Bar de ejemplo','multibar'), ('autonomialab','autonomIA Lab','plataforma');
 insert into comun.usuarios (negocio_id,email,name,password_hash,must_change_password) values
