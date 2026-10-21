@@ -5017,7 +5017,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // Todo pasa por funciones de la base (las tablas están cerradas a la web).
 // La sesión es un token propio guardado en el móvil; vale 60 días y se
 // alarga sola al abrir la app.
-const APP_VERSION = 105;
+const APP_VERSION = 106;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
 // Negocio de Gymbro: ?g=slug en la dirección (v103: sin ?g= ni se llega
@@ -5091,6 +5091,7 @@ function cerrarSesionLocal(){
 // Progreso: misma forma que las filas de antes (work_key, peso, series…).
 // Devuelve { error } como hacía Supabase, sin lanzar.
 async function upsertProgreso(rows){
+  if(!datosCargados) return { error: new Error('SIN_DATOS') }; // v106: ver datosCargados
   try{
     const filas = (Array.isArray(rows) ? rows : [rows]).map(({ user_id, ...f }) => f);
     await api('guardar_progreso_gymbro', { p_token: sesionToken, p_filas: filas });
@@ -5209,6 +5210,12 @@ async function persistStateOnce(silent){
 // personalizados (un push por cada carga, aunque en Supabase hubiera una
 // sola fila).
 let loadStateInFlight = false;
+// v106 — Hasta que los datos del socio no han llegado de la base, la app
+// no guarda nada: con lo que tiene en memoria (vacío o de fábrica) pisaría
+// lo suyo. Pasó el 20 oct: el orden de días volvió al de fábrica y «Hoy
+// toca» se equivocó. Si la carga falla, se reintenta sola.
+let datosCargados = false;
+let reintentoCarga = null;
 
 // v77 — El catálogo cambió (sub-músculos nuevos, fusionados y renombrados),
 // así que los ids viejos ya no existen. Para no perder lo ya registrado, se
@@ -5373,6 +5380,7 @@ async function loadState(){
       }
     }catch(e){ /* si falla, simplemente no se muestran los personalizados guardados antes */ }
 
+    datosCargados = true; // ya está todo lo suyo en memoria: se puede guardar
     if(migrateLegacyData()) persistState(true);
 
     // Ya con dayAssignment, checkedSubIds y el paso guardado listos,
@@ -5389,10 +5397,22 @@ async function loadState(){
     else if(temaDelUsuario && !themeRaw.startsWith('custom:')) applyTheme(themeRaw, true);
     else aplicarTemaGimnasio(true);
   }catch(e){
-    showToast('No se pudo cargar tu progreso.');
+    showToast('No se pudo cargar tu progreso. Reintentando…');
+    clearTimeout(reintentoCarga);
+    reintentoCarga = setTimeout(recargarDatos, 5000);
   }finally{
     loadStateInFlight = false;
   }
+}
+// Reintento tras una carga fallida: con los datos ya en memoria, vuelve a
+// calcular «Hoy toca» y pinta Inicio si es lo que se está viendo.
+async function recargarDatos(){
+  if(!currentUser || datosCargados) return;
+  await loadState();
+  if(!datosCargados) return;
+  showToast('Progreso cargado ✓');
+  todayAccent = await getNextDayAccent();
+  if(currentView === 'home') renderHome();
 }
 
 const profileBtn = document.getElementById('profileBtn');
@@ -6206,7 +6226,9 @@ function goToSplitPicker(){
 // "Programa tu entreno" en ese mismo orden.
 function goToDayOrder(){
   hideAllViews();
-  if([1,2,3].every(s => !dayAssignment[s])){
+  // v106 — solo con sus datos ya cargados: si no, «vacío» no significa
+  // «primera vez» y se pisaba su orden.
+  if(datosCargados && [1,2,3].every(s => !dayAssignment[s])){
     // Primera vez que llega aquí, sin nada elegido: arranca directo con el
     // orden de fábrica (01 Empuje, 02 Pierna y core, 03 Tirón) ya puesto,
     // en vez de 3 tarjetas vacías — si quiere otro orden, toca "Cambiar".
