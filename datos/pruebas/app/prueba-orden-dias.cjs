@@ -1,4 +1,5 @@
-// Prueba de la v106: sin los datos del socio cargados, la app no guarda nada
+// Prueba de la v106: sin los datos del socio cargados, la app no guarda nada,
+// y la «Ver pantalla de bienvenida» de Ajustes es solo una vista previa
 // (antes, con mala señal, el orden de días volvía al de fábrica y «Hoy toca»
 // se equivocaba). Necesita: Carlos (clave-prueba-1) con orden {1:2,2:1,3:3},
 // entrenos de los días 2, 1 y 3 (el último, Tirón) y la privacidad aceptada;
@@ -58,6 +59,40 @@ let cortarDatos = 0;
     if (await page.isVisible('#legalGate')) { await page.check('#legalCheck'); await page.click('#legalAceptar'); await page.waitForTimeout(800); }
     await page.evaluate(() => goToDayOrder()); await page.waitForTimeout(1500);
     const o = orden('usuarioswxht@gmail.com'); if (o !== '{"1":1,"2":2,"3":3}') throw new Error('orden: ' + o);
+    await page.context().close();
+  });
+  await paso('5 vista previa de bienvenida (Ajustes): mover el orden y salir no guarda nada', async () => {
+    page = await nuevo(); await entrar(page, 'carloswxht+war300@gmail.com');
+    await page.evaluate(() => document.getElementById('viewOnboardingBtn').click()); await page.waitForTimeout(300);
+    await page.click('#onbCreateBtn'); await page.waitForTimeout(300);
+    await page.click('#splitPPLBtn'); await page.waitForTimeout(500);
+    if (!(await page.textContent('#dayOrderHint')).includes('Vista previa')) throw new Error('sin aviso de vista previa');
+    if ((await page.textContent('#continueBtn')).trim() !== 'Guardar este orden') throw new Error('botón: ' + await page.textContent('#continueBtn'));
+    await page.evaluate(() => { assignDaySlot(1, 1); unassignDaySlot(3); }); await page.waitForTimeout(1200);
+    await page.screenshot({ path: `${OUT}/o3-vista-previa.png` });
+    if (orden('carloswxht+war300@gmail.com') !== '{"1":2,"2":1,"3":3}') throw new Error('guardó al mover: ' + orden('carloswxht+war300@gmail.com'));
+    await page.evaluate(() => goHome()); await page.waitForTimeout(1500);
+    if (orden('carloswxht+war300@gmail.com') !== '{"1":2,"2":1,"3":3}') throw new Error('guardó al salir');
+    const mem = await page.evaluate(() => JSON.stringify(dayAssignment));
+    if (mem !== '{"1":2,"2":1,"3":3}') throw new Error('en memoria quedó ' + mem);
+    const t = await hoy(page); if (!t.includes('Pierna y core')) throw new Error(t);
+  });
+  await paso('6 vista previa: «Guardar este orden» guarda y dice qué toca hoy', async () => {
+    await page.evaluate(() => document.getElementById('viewOnboardingBtn').click()); await page.waitForTimeout(300);
+    await page.click('#onbCreateBtn'); await page.waitForTimeout(300);
+    await page.click('#splitPPLBtn'); await page.waitForTimeout(500);
+    await page.evaluate(() => assignDaySlot(1, 1)); await page.waitForTimeout(300);
+    await page.click('#continueBtn'); await page.waitForTimeout(1500);
+    if (orden('carloswxht+war300@gmail.com') !== '{"1":1,"2":2,"3":3}') throw new Error('no guardó: ' + orden('carloswxht+war300@gmail.com'));
+    const toast = await page.textContent('#status'); if (!toast.includes('Orden guardado') || !toast.includes('Empuje superior')) throw new Error(toast);
+    const t = await hoy(page); if (!t.includes('Empuje superior')) throw new Error(t);
+    await page.screenshot({ path: `${OUT}/o4-guardado.png` });
+  });
+  await paso('7 fuera de la vista previa, «Orden de tus días» sigue guardando al momento', async () => {
+    await page.evaluate(() => goToDayOrder()); await page.waitForTimeout(300);
+    if ((await page.textContent('#dayOrderHint')).includes('Vista previa')) throw new Error('aviso de vista previa fuera de ella');
+    await page.evaluate(() => assignDaySlot(1, 2)); await page.waitForTimeout(1200);
+    if (orden('carloswxht+war300@gmail.com') !== '{"1":2,"2":1,"3":3}') throw new Error('orden: ' + orden('carloswxht+war300@gmail.com'));
     await page.context().close();
   });
   console.log(errores.length ? 'ERRORES DE PÁGINA: ' + errores.join(' | ') : 'sin errores de página');

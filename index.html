@@ -1706,7 +1706,7 @@
       </button>
       <h2>Programa tu entreno</h2>
     </div>
-    <p class="board-hint">Selecciona lo que quieres hacer cada día.</p>
+    <p class="board-hint" id="dayOrderHint">Selecciona lo que quieres hacer cada día.</p>
     <div class="board" id="dayOrderBoard"></div>
   </div>
 
@@ -4125,6 +4125,9 @@ window.addEventListener('popstate', (e)=>{
 });
 
 function hideAllViews(){
+  // v106 — salir de la vista previa de bienvenida sin guardar la deja como
+  // estaba (currentView se pone justo después de llamar aquí).
+  if(vistaPrevia) queueMicrotask(()=>{ if(vistaPrevia && !VISTAS_DE_BIENVENIDA.includes(currentView)) cerrarVistaPrevia(); });
   // Si se estaba en ejecución y se navega a cualquier otra pantalla (por
   // el menú, por "atrás", por donde sea), se limpia el estado guardado de
   // "hay un entreno en curso" — si no, ese estado tiene prioridad sobre
@@ -4878,6 +4881,7 @@ continueBtn.addEventListener('click', async ()=>{
       showToast('Elige los 3 días para continuar.');
       return;
     }
+    if(vistaPrevia){ await guardarOrdenVistaPrevia(); return; }
     goToChecklistFromHome();
   }
   else if(currentView === 'checklist'){
@@ -5216,6 +5220,25 @@ let loadStateInFlight = false;
 // toca» se equivocó. Si la carga falla, se reintenta sola.
 let datosCargados = false;
 let reintentoCarga = null;
+// v106 — «Ver pantalla de bienvenida» (Ajustes): mientras dura, el orden de
+// días se puede mover pero no se guarda; null fuera de la vista previa.
+let vistaPrevia = null;
+const VISTAS_DE_BIENVENIDA = ['onboarding', 'split-picker', 'day-order'];
+// Al ir a cualquier otra pantalla sin guardar, se deja todo como estaba.
+function cerrarVistaPrevia(){
+  if(!vistaPrevia) return;
+  const cambiado = [1,2,3].some(s => dayAssignment[s] !== vistaPrevia.orden[s]);
+  dayAssignment = { ...vistaPrevia.orden };
+  vistaPrevia = null;
+  if(cambiado) showToast('Vista previa cerrada: tu orden de días no ha cambiado.');
+}
+async function guardarOrdenVistaPrevia(){
+  vistaPrevia = null;
+  await persistDaySlots();
+  todayAccent = await getNextDayAccent();
+  goHome();
+  showToast('Orden guardado. Hoy toca: ' + todayDayName());
+}
 
 // v77 — El catálogo cambió (sub-músculos nuevos, fusionados y renombrados),
 // así que los ids viejos ya no existen. Para no perder lo ya registrado, se
@@ -5709,7 +5732,7 @@ async function saveCustomThemesList(){
 }
 
 async function persistDaySlots(){
-  if(!currentUser) return;
+  if(!currentUser || vistaPrevia) return;
   try{
     await upsertProgreso(
       { user_id: currentUser.id, work_key: '__day_slots__', reps: JSON.stringify(dayAssignment) },
@@ -5777,6 +5800,10 @@ document.getElementById('settingsClose').addEventListener('click', ()=>{
 // de prueba cada vez.
 document.getElementById('viewOnboardingBtn').addEventListener('click', ()=>{
   settingsOverlay.classList.remove('open');
+  // v106 — de verdad una vista previa: el orden de días que se toque aquí
+  // solo se guarda con «Guardar este orden» (antes se guardaba al momento
+  // y cambiaba «Hoy toca» sin avisar).
+  vistaPrevia = { orden: { ...dayAssignment } };
   goToOnboarding();
 });
 settingsOverlay.addEventListener('click', (e)=>{
@@ -6239,7 +6266,11 @@ function goToDayOrder(){
   viewDayOrder.style.display = 'block';
   currentView = 'day-order';
   continueBtn.style.visibility = 'visible';
-  continueBtn.innerHTML = `Continuar <svg viewBox="0 0 24 24" fill="none"><path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  document.getElementById('dayOrderHint').textContent = vistaPrevia
+    ? 'Vista previa: si cambias el orden, solo se guarda al tocar «Guardar este orden». Si sales, queda como estaba.'
+    : 'Selecciona lo que quieres hacer cada día.';
+  if(vistaPrevia) continueBtn.innerHTML = 'Guardar este orden';
+  else continueBtn.innerHTML = `Continuar <svg viewBox="0 0 24 24" fill="none"><path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   window.scrollTo(0,0);
   pushNav();
 }
