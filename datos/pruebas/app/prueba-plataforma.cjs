@@ -8,7 +8,7 @@ async function contexto(browser){
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
   await ctx.route('https://dorunbacwnkwdatfscri.supabase.co/**', async r => {
     const u = new URL(r.request().url());
-    const resp = await fetch('http://127.0.0.1:8091' + u.pathname, { method: 'POST', body: r.request().postData() || '{}' });
+    const resp = await fetch('http://127.0.0.1:8091' + u.pathname + u.search, { method: r.request().method(), headers: (h => ({ 'content-type': 'application/json', ...(h.authorization ? { authorization: h.authorization } : {}) }))(r.request().headers()), body: r.request().method() === 'GET' ? undefined : (r.request().postData() || '{}') });
     r.fulfill({ status: resp.status, contentType: 'application/json', body: await resp.text() });
   });
   return ctx;

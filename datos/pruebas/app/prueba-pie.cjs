@@ -11,7 +11,7 @@ const B = 'http://127.0.0.1:8091';
   ctx.on('request', r => { if (/google/.test(new URL(r.url()).hostname)) aGoogle.push(r.url()); });
   await ctx.route('https://dorunbacwnkwdatfscri.supabase.co/**', async r => {
     const u = new URL(r.request().url());
-    const resp = await fetch(B + u.pathname, { method: 'POST', body: r.request().postData() || '{}' });
+    const resp = await fetch(B + u.pathname + u.search, { method: r.request().method(), headers: (h => ({ 'content-type': 'application/json', ...(h.authorization ? { authorization: h.authorization } : {}) }))(r.request().headers()), body: r.request().method() === 'GET' ? undefined : (r.request().postData() || '{}') });
     r.fulfill({ status: resp.status, contentType: 'application/json', body: await resp.text() });
   });
   const page = await ctx.newPage(); const errores = [];

@@ -149,8 +149,10 @@
 </div>
 <div class="aviso" id="aviso" hidden></div>
 
+<!-- v107 — librería de Supabase (login), guardada en la propia web. Licencia MIT. -->
+<script src="/vendor/supabase-js-2.45.4/supabase.js"></script>
 <script>
-const VERSION = 105;
+const VERSION = 107;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const FUNC_URL = 'https://dorunbacwnkwdatfscri.supabase.co/functions/v1/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
@@ -161,9 +163,12 @@ if(!NEGOCIO){
   location.replace(g ? '/panel/?g=' + encodeURIComponent(g) : '/inicio/');
 }
 // La misma sesión que la app: si el dueño ya entró en la app, entra directo.
+// v107 — es la sesión del login de Supabase (la guarda y renueva la librería).
 const SESION_KEY = 'gymbro.sesion.' + NEGOCIO;
-let token = null;
-try{ token = localStorage.getItem(SESION_KEY); }catch(e){}
+const sb = supabase.createClient('https://dorunbacwnkwdatfscri.supabase.co', API_KEY, {
+  auth: { storageKey: 'gymbro.sb.' + NEGOCIO, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+});
+try{ localStorage.removeItem(SESION_KEY); }catch(e){} // sesión propia de antes: ya no vale
 let datos = null;
 
 const $ = id => document.getElementById(id);
@@ -191,19 +196,17 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp
 async function api(fn, args){
   const ctrl = new AbortController();
   const timer = setTimeout(()=> ctrl.abort(), 20000);
+  let tk = null;
+  try{ const { data } = await sb.auth.getSession(); tk = data.session ? data.session.access_token : null; }catch(e){}
   let res;
   try{
-    res = await fetch(API_URL + fn, { method:'POST', headers:{ 'apikey': API_KEY, 'Content-Type':'application/json' },
+    res = await fetch(API_URL + fn, { method:'POST', headers:{ 'apikey': API_KEY, 'Content-Type':'application/json', ...(tk ? { 'Authorization': 'Bearer ' + tk } : {}) },
       body: JSON.stringify(args || {}), signal: ctrl.signal });
   } finally { clearTimeout(timer); }
   const text = await res.text();
   let body = null; try{ body = text ? JSON.parse(text) : null; }catch(e){}
   if(!res.ok) throw new Error((body && body.message) || 'ERROR');
   return body;
-}
-function guardarToken(t){
-  token = t;
-  try{ if(t) localStorage.setItem(SESION_KEY, t); else localStorage.removeItem(SESION_KEY); }catch(e){}
 }
 
 let avisoTimer = null;
@@ -223,18 +226,21 @@ $('eEntrar').addEventListener('click', async ()=>{
   if(!email || !clave){ mostrarEntrar('Completa correo y contraseña.', true); return; }
   $('eMsg').textContent = 'Un momento...'; $('eMsg').classList.remove('error');
   try{
-    const r = await api('entrar_gymbro', { p_slug: NEGOCIO, p_email: email, p_password: clave });
-    if(r && r.error) throw new Error(r.error);
-    if(r.rol !== 'admin'){ guardarToken(r.token); mostrarEntrar(TEXTO_ERROR.SIN_PERMISO, true); return; }
-    guardarToken(r.token);
+    const { error } = await sb.auth.signInWithPassword({ email, password: clave });
+    if(error) throw new Error(error.status === 429 ? 'DEMASIADOS_INTENTOS' : 'CREDENCIALES');
+    let r;
+    try{ r = await api('yo_gymbro', {}); }catch(e2){ r = null; }
+    // Cuenta de otro gimnasio o de otro producto: fuera, con el mismo aviso que una contraseña mala.
+    if(!r || !r.negocio || r.negocio.slug !== NEGOCIO){ await sb.auth.signOut({ scope: 'local' }).catch(()=>{}); throw new Error('CREDENCIALES'); }
+    // Un socio que no administra se queda con su sesión (vale para la app), pero aquí no entra.
+    if(r.rol !== 'admin'){ mostrarEntrar(TEXTO_ERROR.SIN_PERMISO, true); return; }
     $('eClave').value = '';
     await cargar();
   }catch(e){ mostrarEntrar(textoError(e), true); }
 });
 $('eClave').addEventListener('keydown', e => { if(e.key === 'Enter') $('eEntrar').click(); });
 $('bSalir').addEventListener('click', async ()=>{
-  try{ await api('salir_gymbro', { p_token: token }); }catch(e){}
-  guardarToken(null);
+  try{ await sb.auth.signOut({ scope: 'local' }); }catch(e){}
   try{ localStorage.removeItem(SESION_KEY + '.yo'); }catch(e){}
   datos = null;
   mostrarEntrar('Has cerrado la sesión.');
@@ -243,9 +249,10 @@ $('bSalir').addEventListener('click', async ()=>{
 // ---- Panel ----
 async function cargar(){
   try{
-    datos = await api('panel_gymbro', { p_token: token });
+    datos = await api('panel_gymbro', {});
+    if(datos.negocio && datos.negocio.slug !== NEGOCIO) throw new Error('SESION_CADUCADA');
   }catch(e){
-    if(e.message === 'SESION_CADUCADA') guardarToken(null);
+    if(e.message === 'SESION_CADUCADA') await sb.auth.signOut({ scope: 'local' }).catch(()=>{});
     mostrarEntrar(e.message === 'SESION_CADUCADA' ? '' : textoError(e), e.message !== 'SESION_CADUCADA');
     return;
   }
@@ -307,7 +314,7 @@ $('lista').addEventListener('click', e => {
 $('sRegistro').addEventListener('change', async e => {
   const abierto = e.target.checked;
   try{
-    await api('panel_registro_gymbro', { p_token: token, p_abierto: abierto });
+    await api('panel_registro_gymbro', { p_abierto: abierto });
     datos.negocio.registro_abierto = abierto; pintar();
     aviso(abierto ? 'Registro libre abierto.' : 'Registro libre cerrado.');
   }catch(err){ e.target.checked = !abierto; aviso(textoError(err)); }
@@ -345,7 +352,7 @@ $('bAlta').addEventListener('click', ()=>{
     if(/\s/.test(email) || !/^[^@]+@[^@]+\.[^@]+$/.test(email)){ msg('Revisa el correo: no parece válido.', true); return; }
     $('aGuardar').disabled = true; msg('Un momento...');
     try{
-      await api('panel_alta_socio_gymbro', { p_token: token, p_email: email, p_nombre: nombre });
+      await api('panel_alta_socio_gymbro', { p_email: email, p_nombre: nombre });
       const ok = await mandarInvitacion(email);
       cerrarHoja(); await cargar();
       aviso(ok ? `Dado de alta. Invitación enviada a ${email}.` : 'Dado de alta, pero no se pudo mandar el correo. Usa «Reenviar invitación».');
@@ -395,20 +402,20 @@ async function accion(s, a){
     return;
   }
   if(a === 'baja') return confirmar(`¿Dar de baja a ${nombre}?`, 'Ya no podrá entrar en la app. Sus datos se guardan y puedes reactivarlo cuando quieras.', 'Sí, dar de baja', true, async ()=>{
-    await api('panel_estado_socio_gymbro', { p_token: token, p_usuario: s.id, p_activo: false });
+    await api('panel_estado_socio_gymbro', { p_usuario: s.id, p_activo: false });
     cerrarHoja(); await cargar(); aviso(`${s.nombre} está de baja.`);
   });
   if(a === 'reactivar') return confirmar(`¿Reactivar a ${nombre}?`, 'Podrá volver a entrar con su correo y su contraseña.', 'Sí, reactivar', false, async ()=>{
-    await api('panel_estado_socio_gymbro', { p_token: token, p_usuario: s.id, p_activo: true });
+    await api('panel_estado_socio_gymbro', { p_usuario: s.id, p_activo: true });
     cerrarHoja(); await cargar(); aviso(`${s.nombre} vuelve a estar activo.`);
   });
   if(a === 'hacer-admin') return confirmar(`¿Hacer administrador a ${nombre}?`, 'Podrá entrar en este panel: ver a los socios, darlos de alta y de baja y cambiar el registro libre.', 'Sí, hacer administrador', false, async ()=>{
-    await api('panel_rol_socio_gymbro', { p_token: token, p_usuario: s.id, p_rol: 'admin' });
+    await api('panel_rol_socio_gymbro', { p_usuario: s.id, p_rol: 'admin' });
     cerrarHoja(); await cargar(); aviso(`${s.nombre} ya es administrador.`);
   });
   if(a === 'quitar-admin') return confirmar(`¿Quitar la administración a ${nombre}?`, s.id === datos.yo
     ? 'Dejarás de poder entrar en este panel.' : 'Dejará de poder entrar en este panel. Seguirá usando la app como socio.', 'Sí, quitarla', true, async ()=>{
-    await api('panel_rol_socio_gymbro', { p_token: token, p_usuario: s.id, p_rol: 'socio' });
+    await api('panel_rol_socio_gymbro', { p_usuario: s.id, p_rol: 'socio' });
     cerrarHoja();
     if(s.id === datos.yo){ mostrarEntrar('Ya no tienes administración en este gimnasio.'); return; }
     await cargar(); aviso(`${s.nombre} ya no es administrador.`);
@@ -433,7 +440,9 @@ async function cargarLogo(n){
 // ---- Arranque ----
 (async ()=>{
   try{ const n = await api('negocio_gymbro', { p_slug: NEGOCIO }); $('eNegocio').textContent = n.nombre; cargarLogo(n); }catch(e){}
-  if(token) await cargar(); else mostrarEntrar('');
+  let haySesion = false;
+  try{ haySesion = !!(await sb.auth.getSession()).data.session; }catch(e){}
+  if(haySesion) await cargar(); else mostrarEntrar('');
 })();
 </script>
 </body>

@@ -18,7 +18,7 @@ let cortarDatos = 0;
     await ctx.route('https://dorunbacwnkwdatfscri.supabase.co/**', async r => {
       const u = new URL(r.request().url());
       if (u.pathname.endsWith('/mis_datos_gymbro') && cortarDatos > 0){ cortarDatos--; return r.abort(); }
-      const resp = await fetch(B + u.pathname, { method: 'POST', body: r.request().postData() || '{}' });
+      const resp = await fetch(B + u.pathname + u.search, { method: r.request().method(), headers: (h => ({ 'content-type': 'application/json', ...(h.authorization ? { authorization: h.authorization } : {}) }))(r.request().headers()), body: r.request().method() === 'GET' ? undefined : (r.request().postData() || '{}') });
       r.fulfill({ status: resp.status, contentType: 'application/json', body: await resp.text() });
     });
     const page = await ctx.newPage(); page.on('pageerror', e => errores.push(e.message));
