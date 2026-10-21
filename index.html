@@ -1667,7 +1667,6 @@
         <svg class="so-icon" viewBox="0 0 24 24" fill="none"><path d="M9 6H20M9 12H20M9 18H20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 6L5 7L7 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12L5 13L7 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 18L5 19L7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <div>
           <p class="so-name">Crea tu rutina</p>
-          <p class="so-desc">Elige tú mismo qué músculos trabajar hoy.</p>
         </div>
       </div>
     </div>
@@ -1706,7 +1705,7 @@
       </button>
       <h2>Programa tu entreno</h2>
     </div>
-    <p class="board-hint">Selecciona lo que quieres hacer cada día.</p>
+    <p class="board-hint" id="dayOrderHint">Selecciona lo que quieres hacer cada día.</p>
     <div class="board" id="dayOrderBoard"></div>
   </div>
 
@@ -4125,6 +4124,9 @@ window.addEventListener('popstate', (e)=>{
 });
 
 function hideAllViews(){
+  // v106 — salir de la vista previa de bienvenida sin guardar la deja como
+  // estaba (currentView se pone justo después de llamar aquí).
+  if(vistaPrevia) queueMicrotask(()=>{ if(vistaPrevia && !VISTAS_DE_BIENVENIDA.includes(currentView)) cerrarVistaPrevia(); });
   // Si se estaba en ejecución y se navega a cualquier otra pantalla (por
   // el menú, por "atrás", por donde sea), se limpia el estado guardado de
   // "hay un entreno en curso" — si no, ese estado tiene prioridad sobre
@@ -4878,6 +4880,7 @@ continueBtn.addEventListener('click', async ()=>{
       showToast('Elige los 3 días para continuar.');
       return;
     }
+    if(vistaPrevia){ await guardarOrdenVistaPrevia(); return; }
     goToChecklistFromHome();
   }
   else if(currentView === 'checklist'){
@@ -5017,7 +5020,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // Todo pasa por funciones de la base (las tablas están cerradas a la web).
 // La sesión es un token propio guardado en el móvil; vale 60 días y se
 // alarga sola al abrir la app.
-const APP_VERSION = 105;
+const APP_VERSION = 106;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
 // Negocio de Gymbro: ?g=slug en la dirección (v103: sin ?g= ni se llega
@@ -5091,6 +5094,7 @@ function cerrarSesionLocal(){
 // Progreso: misma forma que las filas de antes (work_key, peso, series…).
 // Devuelve { error } como hacía Supabase, sin lanzar.
 async function upsertProgreso(rows){
+  if(!datosCargados) return { error: new Error('SIN_DATOS') }; // v106: ver datosCargados
   try{
     const filas = (Array.isArray(rows) ? rows : [rows]).map(({ user_id, ...f }) => f);
     await api('guardar_progreso_gymbro', { p_token: sesionToken, p_filas: filas });
@@ -5209,6 +5213,31 @@ async function persistStateOnce(silent){
 // personalizados (un push por cada carga, aunque en Supabase hubiera una
 // sola fila).
 let loadStateInFlight = false;
+// v106 — Hasta que los datos del socio no han llegado de la base, la app
+// no guarda nada: con lo que tiene en memoria (vacío o de fábrica) pisaría
+// lo suyo. Pasó el 20 oct: el orden de días volvió al de fábrica y «Hoy
+// toca» se equivocó. Si la carga falla, se reintenta sola.
+let datosCargados = false;
+let reintentoCarga = null;
+// v106 — «Ver pantalla de bienvenida» (Ajustes): mientras dura, el orden de
+// días se puede mover pero no se guarda; null fuera de la vista previa.
+let vistaPrevia = null;
+const VISTAS_DE_BIENVENIDA = ['onboarding', 'split-picker', 'day-order'];
+// Al ir a cualquier otra pantalla sin guardar, se deja todo como estaba.
+function cerrarVistaPrevia(){
+  if(!vistaPrevia) return;
+  const cambiado = [1,2,3].some(s => dayAssignment[s] !== vistaPrevia.orden[s]);
+  dayAssignment = { ...vistaPrevia.orden };
+  vistaPrevia = null;
+  if(cambiado) showToast('Vista previa cerrada: tu orden de días no ha cambiado.');
+}
+async function guardarOrdenVistaPrevia(){
+  vistaPrevia = null;
+  await persistDaySlots();
+  todayAccent = await getNextDayAccent();
+  goHome();
+  showToast('Orden guardado. Hoy toca: ' + todayDayName());
+}
 
 // v77 — El catálogo cambió (sub-músculos nuevos, fusionados y renombrados),
 // así que los ids viejos ya no existen. Para no perder lo ya registrado, se
@@ -5373,6 +5402,7 @@ async function loadState(){
       }
     }catch(e){ /* si falla, simplemente no se muestran los personalizados guardados antes */ }
 
+    datosCargados = true; // ya está todo lo suyo en memoria: se puede guardar
     if(migrateLegacyData()) persistState(true);
 
     // Ya con dayAssignment, checkedSubIds y el paso guardado listos,
@@ -5389,10 +5419,22 @@ async function loadState(){
     else if(temaDelUsuario && !themeRaw.startsWith('custom:')) applyTheme(themeRaw, true);
     else aplicarTemaGimnasio(true);
   }catch(e){
-    showToast('No se pudo cargar tu progreso.');
+    showToast('No se pudo cargar tu progreso. Reintentando…');
+    clearTimeout(reintentoCarga);
+    reintentoCarga = setTimeout(recargarDatos, 5000);
   }finally{
     loadStateInFlight = false;
   }
+}
+// Reintento tras una carga fallida: con los datos ya en memoria, vuelve a
+// calcular «Hoy toca» y pinta Inicio si es lo que se está viendo.
+async function recargarDatos(){
+  if(!currentUser || datosCargados) return;
+  await loadState();
+  if(!datosCargados) return;
+  showToast('Progreso cargado ✓');
+  todayAccent = await getNextDayAccent();
+  if(currentView === 'home') renderHome();
 }
 
 const profileBtn = document.getElementById('profileBtn');
@@ -5689,7 +5731,7 @@ async function saveCustomThemesList(){
 }
 
 async function persistDaySlots(){
-  if(!currentUser) return;
+  if(!currentUser || vistaPrevia) return;
   try{
     await upsertProgreso(
       { user_id: currentUser.id, work_key: '__day_slots__', reps: JSON.stringify(dayAssignment) },
@@ -5757,6 +5799,10 @@ document.getElementById('settingsClose').addEventListener('click', ()=>{
 // de prueba cada vez.
 document.getElementById('viewOnboardingBtn').addEventListener('click', ()=>{
   settingsOverlay.classList.remove('open');
+  // v106 — de verdad una vista previa: el orden de días que se toque aquí
+  // solo se guarda con «Guardar este orden» (antes se guardaba al momento
+  // y cambiaba «Hoy toca» sin avisar).
+  vistaPrevia = { orden: { ...dayAssignment } };
   goToOnboarding();
 });
 settingsOverlay.addEventListener('click', (e)=>{
@@ -6206,7 +6252,9 @@ function goToSplitPicker(){
 // "Programa tu entreno" en ese mismo orden.
 function goToDayOrder(){
   hideAllViews();
-  if([1,2,3].every(s => !dayAssignment[s])){
+  // v106 — solo con sus datos ya cargados: si no, «vacío» no significa
+  // «primera vez» y se pisaba su orden.
+  if(datosCargados && [1,2,3].every(s => !dayAssignment[s])){
     // Primera vez que llega aquí, sin nada elegido: arranca directo con el
     // orden de fábrica (01 Empuje, 02 Pierna y core, 03 Tirón) ya puesto,
     // en vez de 3 tarjetas vacías — si quiere otro orden, toca "Cambiar".
@@ -6217,7 +6265,11 @@ function goToDayOrder(){
   viewDayOrder.style.display = 'block';
   currentView = 'day-order';
   continueBtn.style.visibility = 'visible';
-  continueBtn.innerHTML = `Continuar <svg viewBox="0 0 24 24" fill="none"><path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  document.getElementById('dayOrderHint').textContent = vistaPrevia
+    ? 'Vista previa: si cambias el orden, solo se guarda al tocar «Guardar este orden». Si sales, queda como estaba.'
+    : 'Selecciona lo que quieres hacer cada día.';
+  if(vistaPrevia) continueBtn.innerHTML = 'Guardar este orden';
+  else continueBtn.innerHTML = `Continuar <svg viewBox="0 0 24 24" fill="none"><path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   window.scrollTo(0,0);
   pushNav();
 }
