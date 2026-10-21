@@ -40,11 +40,12 @@ let cortarDatos = 0;
     await page.context().close();
   });
   await paso('2 sin señal al cargar sus datos: abrir «Orden de tus días» y guardar no pisan su orden', async () => {
+    const desde = sql('select now()');
     page = await nuevo(); cortarDatos = 100; await entrar(page, 'carloswxht+war300@gmail.com');
     await page.evaluate(() => { goToDayOrder(); persistState(true); persistDaySlots(); saveThemePref(); });
     await page.waitForTimeout(1500);
     const o = orden('carloswxht+war300@gmail.com'); if (o !== '{"1":2,"2":1,"3":3}') throw new Error('orden pisado: ' + o);
-    const n = sql("select count(*) from gymbro.progreso_gymbro p join comun.usuarios u on u.id = p.usuario_id where u.email = 'carloswxht+war300@gmail.com' and p.updated_at > now() - interval '30 seconds'");
+    const n = sql(`select count(*) from gymbro.progreso_gymbro p join comun.usuarios u on u.id = p.usuario_id where u.email = 'carloswxht+war300@gmail.com' and p.updated_at >= '${desde}'`);
     if (n !== '0') throw new Error(n + ' filas guardadas sin datos');
   });
   await paso('3 vuelve la señal: carga sola y «Hoy toca» es Pierna y core; su orden sigue igual', async () => {

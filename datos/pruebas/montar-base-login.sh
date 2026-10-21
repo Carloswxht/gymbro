@@ -6,6 +6,7 @@
 set -e
 cd "$(dirname "$0")/../.."
 P="psql -h /var/tmp/gympg -p 5445 -U postgres -q -v ON_ERROR_STOP=1"
+$P -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = 'login' and pid <> pg_backend_pid()" >/dev/null
 $P -c "drop database if exists login" -c "create database login"
 P="$P -d login"
 sed '/^create role anon/d' datos/pruebas/replica-local.sql | $P >/dev/null   # los roles ya existen en el servidor
