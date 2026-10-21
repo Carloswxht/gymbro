@@ -10,7 +10,7 @@ const OUT = process.argv[2];
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
   await ctx.route('https://dorunbacwnkwdatfscri.supabase.co/**', async r => {
     const u = new URL(r.request().url());
-    const resp = await fetch('http://127.0.0.1:8091' + u.pathname, { method: 'POST', body: r.request().postData() || '{}' });
+    const resp = await fetch('http://127.0.0.1:8091' + u.pathname + u.search, { method: r.request().method(), headers: (h => ({ 'content-type': 'application/json', ...(h.authorization ? { authorization: h.authorization } : {}) }))(r.request().headers()), body: r.request().method() === 'GET' ? undefined : (r.request().postData() || '{}') });
     r.fulfill({ status: resp.status, contentType: 'application/json', body: await resp.text() });
   });
   const paso = async (n, f) => { try { await f(); console.log('OK  ' + n); } catch (e) { console.log('MAL ' + n + ': ' + e.message.split('\n')[0]); } };
@@ -27,7 +27,7 @@ const OUT = process.argv[2];
     await page.fill('#eCorreo', 'carloswxht+war300@gmail.com'); await page.fill('#eClave', 'clave-prueba-1'); await page.click('#eEntrar'); await page.waitForTimeout(1200);
     if (await page.isHidden('#vPanel')) throw new Error(await page.textContent('#eMsg'));
     inicial = await page.locator('.socio').count(); if (inicial < 2) throw new Error('socios: ' + inicial);
-    if ((await page.textContent('#pVersion')) !== 'Panel v105') throw new Error('versión'); await cap('p2-panel');
+    if ((await page.textContent('#pVersion')) !== 'Panel v107') throw new Error('versión'); await cap('p2-panel');
   });
   await paso('3 dar de alta a un socio (manda invitación)', async () => {
     await page.click('#bAlta'); await page.fill('#aNombre', 'Socia ejemplo'); await page.fill('#aCorreo', 'socia@ejemplo.test'); await cap('p3-alta');
@@ -47,7 +47,7 @@ const OUT = process.argv[2];
     await ctx2.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
     await ctx2.route('https://dorunbacwnkwdatfscri.supabase.co/**', async r => {
       const u = new URL(r.request().url());
-      const resp = await fetch('http://127.0.0.1:8091' + u.pathname, { method: 'POST', body: r.request().postData() || '{}' });
+      const resp = await fetch('http://127.0.0.1:8091' + u.pathname + u.search, { method: r.request().method(), headers: (h => ({ 'content-type': 'application/json', ...(h.authorization ? { authorization: h.authorization } : {}) }))(r.request().headers()), body: r.request().method() === 'GET' ? undefined : (r.request().postData() || '{}') });
       r.fulfill({ status: resp.status, contentType: 'application/json', body: await resp.text() });
     });
     const p2 = await ctx2.newPage(); await p2.goto(B + '/?g=war300#recuperar=' + e.token); await p2.waitForTimeout(800);

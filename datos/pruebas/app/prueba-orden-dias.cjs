@@ -8,7 +8,7 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const { execSync } = require('child_process');
 const OUT = process.argv[2];
 const B = 'http://127.0.0.1:8091';
-const sql = q => execSync(`psql -h /var/tmp/gympg -p 5445 -U postgres -d prueba -Atc "${q}"`).toString().trim();
+const sql = q => execSync(`psql -h /var/tmp/gympg -p 5445 -U postgres -d ${process.env.PGDATABASE || "login"} -Atc "${q}"`).toString().trim();
 const orden = email => sql(`select p.reps from gymbro.progreso_gymbro p join comun.usuarios u on u.id = p.usuario_id where u.email = '${email}' and p.work_key = '__day_slots__'`);
 let cortarDatos = 0;
 (async () => {
@@ -18,7 +18,7 @@ let cortarDatos = 0;
     await ctx.route('https://dorunbacwnkwdatfscri.supabase.co/**', async r => {
       const u = new URL(r.request().url());
       if (u.pathname.endsWith('/mis_datos_gymbro') && cortarDatos > 0){ cortarDatos--; return r.abort(); }
-      const resp = await fetch(B + u.pathname, { method: 'POST', body: r.request().postData() || '{}' });
+      const resp = await fetch(B + u.pathname + u.search, { method: r.request().method(), headers: (h => ({ 'content-type': 'application/json', ...(h.authorization ? { authorization: h.authorization } : {}) }))(r.request().headers()), body: r.request().method() === 'GET' ? undefined : (r.request().postData() || '{}') });
       r.fulfill({ status: resp.status, contentType: 'application/json', body: await resp.text() });
     });
     const page = await ctx.newPage(); page.on('pageerror', e => errores.push(e.message));
@@ -40,11 +40,12 @@ let cortarDatos = 0;
     await page.context().close();
   });
   await paso('2 sin señal al cargar sus datos: abrir «Orden de tus días» y guardar no pisan su orden', async () => {
+    const desde = sql('select now()');
     page = await nuevo(); cortarDatos = 100; await entrar(page, 'carloswxht+war300@gmail.com');
     await page.evaluate(() => { goToDayOrder(); persistState(true); persistDaySlots(); saveThemePref(); });
     await page.waitForTimeout(1500);
     const o = orden('carloswxht+war300@gmail.com'); if (o !== '{"1":2,"2":1,"3":3}') throw new Error('orden pisado: ' + o);
-    const n = sql("select count(*) from gymbro.progreso_gymbro p join comun.usuarios u on u.id = p.usuario_id where u.email = 'carloswxht+war300@gmail.com' and p.updated_at > now() - interval '30 seconds'");
+    const n = sql(`select count(*) from gymbro.progreso_gymbro p join comun.usuarios u on u.id = p.usuario_id where u.email = 'carloswxht+war300@gmail.com' and p.updated_at >= '${desde}'`);
     if (n !== '0') throw new Error(n + ' filas guardadas sin datos');
   });
   await paso('3 vuelve la señal: carga sola y «Hoy toca» es Pierna y core; su orden sigue igual', async () => {

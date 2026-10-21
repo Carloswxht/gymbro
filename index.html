@@ -6,14 +6,16 @@
 <script>
 // v103 — Sin ?g= no hay gimnasio: si este móvil ya conoce uno (el último
 // abierto o una sesión guardada) se va a él; si no, a la página de Gymbro.
+// v107 — la sesión de Supabase se guarda en «gymbro.sb.<slug>» (la de
+// /plataforma/ es «gymbro.sb.plataforma», que no es un gimnasio).
 (function(){
   if(new URLSearchParams(location.search).get('g')) return;
   var g = null;
   try{
     g = localStorage.getItem('gymbro.ultimo');
     for(var i = 0; !g && i < localStorage.length; i++){
-      var m = /^gymbro\.sesion\.([a-z0-9-]+)$/.exec(localStorage.key(i) || '');
-      if(m) g = m[1];
+      var m = /^gymbro\.(?:sesion|sb)\.([a-z0-9-]+)$/.exec(localStorage.key(i) || '');
+      if(m && m[1] !== 'plataforma') g = m[1];
     }
   }catch(e){}
   location.replace(g ? '/?g=' + encodeURIComponent(g) + location.hash : '/inicio/');
@@ -1922,6 +1924,8 @@
 
   <p class="toast" id="status"></p>
 
+<!-- v107 — librería de Supabase (login), guardada en la propia web: no se pide a nadie más. Licencia MIT. -->
+<script src="/vendor/supabase-js-2.45.4/supabase.js"></script>
 <script>
 const chevronSvg = `<svg class="chevron" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const checkSvg = `<svg width="12" height="9" viewBox="0 0 13 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5L4.5 8.5L12 1" stroke="#0E1013" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -3225,7 +3229,7 @@ async function saveCustomExercise(){
     // v97 — subir vídeos desde el móvil vuelve más adelante (necesita un
     // servidor que compruebe la sesión); de momento, solo enlace.
     if(videoUrl && !/^https:\/\//i.test(videoUrl)) videoUrl = 'https://' + videoUrl.replace(/^\w+:\/\//, '');
-    const data = await api('guardar_personalizado_gymbro', { p_token: sesionToken, p_sub_id: subId, p_nombre: nombre, p_video_url: videoUrl });
+    const data = await api('guardar_personalizado_gymbro', { p_sub_id: subId, p_nombre: nombre, p_video_url: videoUrl });
     if(!customExercises[subId]) customExercises[subId] = [];
     customExercises[subId].push({ id: data.id, nombre, video_url: videoUrl });
     chosenExercise[subId] = nombre;
@@ -5018,18 +5022,36 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 
 // ---- Conexión a la base (v97: autonomialab-db, carpeta gymbro) ----
 // Todo pasa por funciones de la base (las tablas están cerradas a la web).
-// La sesión es un token propio guardado en el móvil; vale 60 días y se
-// alarga sola al abrir la app.
-const APP_VERSION = 106;
-const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
+// v107 — Se entra con el login de Supabase (decisión de Carlos, 21 oct): la
+// librería guarda la sesión en el móvil y la renueva sola; cada llamada lleva
+// esa sesión y la base reconoce a la persona por su cuenta (auth.uid()).
+const APP_VERSION = 107;
+const SUPABASE_URL = 'https://dorunbacwnkwdatfscri.supabase.co';
+const API_URL = SUPABASE_URL + '/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
 // Negocio de Gymbro: ?g=slug en la dirección (v103: sin ?g= ni se llega
 // aquí; el script del principio lleva a un gimnasio o a /inicio/).
 const NEGOCIO = (new URLSearchParams(location.search).get('g') || '').toLowerCase();
-const SESION_KEY = 'gymbro.sesion.' + NEGOCIO;
+const SESION_KEY = 'gymbro.sesion.' + NEGOCIO; // hoy solo para «.yo» (lo último conocido, sin señal)
 let currentUser = null;
-let sesionToken = null;
-try{ sesionToken = localStorage.getItem(SESION_KEY); }catch(e){}
+// Una sesión por gimnasio en el mismo móvil, como antes (y aparte de /plataforma/).
+const SB_KEY = 'gymbro.sb.' + NEGOCIO;
+const sb = supabase.createClient(SUPABASE_URL, API_KEY, {
+  auth: { storageKey: SB_KEY, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+});
+// La sesión propia de antes (v106 y anteriores) ya no vale: se vuelve a entrar una vez.
+try{ localStorage.removeItem(SESION_KEY); }catch(e){}
+async function tokenSesion(){
+  try{ const { data } = await sb.auth.getSession(); return data.session ? data.session.access_token : null; }
+  catch(e){ return null; }
+}
+// Errores del login de Supabase → los mismos textos de siempre.
+function errorLogin(error){
+  if(!error) return null;
+  if(error.status === 429) return new Error('DEMASIADOS_INTENTOS');
+  if(!error.status || /fetch|network|Retryable/i.test(error.name + ' ' + error.message)) return new Error('SIN_RED');
+  return new Error('CREDENCIALES');
+}
 
 const TEXTO_ERROR = {
   CREDENCIALES: 'Correo o contraseña incorrectos.',
@@ -5044,6 +5066,7 @@ const TEXTO_ERROR = {
   DATOS_NO_VALIDOS: 'Algún dato no es válido.',
   DEMASIADOS_EJERCICIOS: 'Has llegado al máximo de ejercicios propios.',
   VERSION_NO_VALIDA: 'El texto ha cambiado: vuelve a abrirlo y acéptalo.',
+  SIN_RED: 'No hay conexión. Revisa la señal y vuelve a probar.',
 };
 function textoError(e){
   return TEXTO_ERROR[e && e.message] || 'Ocurrió un error, inténtalo de nuevo.';
@@ -5054,11 +5077,12 @@ function textoError(e){
 async function api(fn, args){
   const ctrl = new AbortController();
   const timer = setTimeout(()=> ctrl.abort(), 20000);
+  const tk = await tokenSesion();
   let res;
   try{
     res = await fetch(API_URL + fn, {
       method: 'POST',
-      headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+      headers: { 'apikey': API_KEY, 'Content-Type': 'application/json', ...(tk ? { 'Authorization': 'Bearer ' + tk } : {}) },
       body: JSON.stringify(args || {}),
       signal: ctrl.signal,
     });
@@ -5073,19 +5097,15 @@ async function api(fn, args){
   }
   return body;
 }
-function guardarSesion(token){
-  sesionToken = token;
-  try{ if(token) localStorage.setItem(SESION_KEY, token); else localStorage.removeItem(SESION_KEY); }catch(e){}
-}
 function usuarioDe(r){ return { id: r.id, email: r.email, nombre: r.nombre, rol: r.rol }; }
 // Al salir se vacía lo de la cuenta guardado en este móvil y se recarga la
 // página: así no queda en memoria nada de la cuenta anterior (pesos, rutina)
 // que se pudiera guardar en otra cuenta que entre después en el mismo móvil.
 function cerrarSesionLocal(){
-  guardarSesion(null);
+  sb.auth.signOut({ scope: 'local' }).catch(()=>{});
   entrenosCache = null;
   try{
-    Object.keys(localStorage).filter(k => k.startsWith('war300_') || k === SESION_KEY + '.yo')
+    Object.keys(localStorage).filter(k => k.startsWith('war300_') || k === SESION_KEY + '.yo' || k.startsWith(SB_KEY))
       .forEach(k => localStorage.removeItem(k));
   }catch(e){}
   if(currentUser) location.reload();
@@ -5097,13 +5117,13 @@ async function upsertProgreso(rows){
   if(!datosCargados) return { error: new Error('SIN_DATOS') }; // v106: ver datosCargados
   try{
     const filas = (Array.isArray(rows) ? rows : [rows]).map(({ user_id, ...f }) => f);
-    await api('guardar_progreso_gymbro', { p_token: sesionToken, p_filas: filas });
+    await api('guardar_progreso_gymbro', { p_filas: filas });
     return { error: null };
   }catch(e){ return { error: e }; }
 }
 async function leerMisDatos(){
   try{
-    const d = await api('mis_datos_gymbro', { p_token: sesionToken });
+    const d = await api('mis_datos_gymbro', {});
     return { data: d, error: null };
   }catch(e){ return { data: null, error: e }; }
 }
@@ -5115,7 +5135,7 @@ document.getElementById('appVersion').textContent = 'Gymbro v' + APP_VERSION;
 document.querySelectorAll('.pie-version').forEach(el => { el.textContent = 'Gymbro v' + APP_VERSION; });
 async function selEntrenos({ orden = 'asc', por = 'fecha', limite = null, desde = null, conDia = false } = {}){
   try{
-    if(!entrenosCache) entrenosCache = await api('mis_entrenos_gymbro', { p_token: sesionToken });
+    if(!entrenosCache) entrenosCache = await api('mis_entrenos_gymbro', {});
     let rows = entrenosCache.slice();
     if(desde) rows = rows.filter(s => s.fecha >= desde);
     if(conDia) rows = rows.filter(s => s.dia != null);
@@ -5130,7 +5150,7 @@ async function selEntrenos({ orden = 'asc', por = 'fecha', limite = null, desde 
 }
 async function guardarEntreno({ fecha, resumen, dia = null, tipo = 'gym' }){
   try{
-    await api('guardar_entreno_gymbro', { p_token: sesionToken, p_fecha: fecha, p_resumen: resumen, p_dia: dia, p_tipo: tipo });
+    await api('guardar_entreno_gymbro', { p_fecha: fecha, p_resumen: resumen, p_dia: dia, p_tipo: tipo });
     entrenosCache = null;
     return { error: null };
   }catch(e){ return { error: e }; }
@@ -5832,7 +5852,7 @@ document.getElementById('confirmDeleteDataBtn').addEventListener('click', async 
   const passInput = document.getElementById('deletePass');
   if(!passInput.value){ showToast('Escribe tu contraseña para confirmar.'); passInput.focus(); return; }
   try{
-    await api('borrar_mi_cuenta_gymbro', { p_token: sesionToken, p_password: passInput.value });
+    await api('borrar_mi_cuenta_gymbro', { p_password: passInput.value });
     passInput.value = '';
     deleteConfirmOverlay.classList.remove('open');
     settingsOverlay.classList.remove('open');
@@ -6154,16 +6174,27 @@ authSubmit.addEventListener('click', async ()=>{
   }
   setAuthMsg('Un momento...');
   try{
-    const r = authMode === 'signin'
-      ? await api('entrar_gymbro', { p_slug: NEGOCIO, p_email: email, p_password: password })
-      : await api('registrar_gymbro', { p_slug: NEGOCIO, p_email: email, p_password: password });
-    if(r && r.error) throw new Error(r.error);
-    guardarSesion(r.token);
+    // v107 — crear cuenta la da de alta en la base (su cuenta de Supabase
+    // nace sola) y después se entra con Supabase, igual que al entrar.
+    if(authMode === 'signup') await api('crear_cuenta_gymbro', { p_slug: NEGOCIO, p_email: email, p_password: password });
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if(error) throw errorLogin(error);
+    let r;
+    try{ r = await api('yo_gymbro', {}); }
+    catch(e2){
+      // Cuenta de otro gimnasio o de otro producto: aquí no entra (mismo aviso que una contraseña mala).
+      await sb.auth.signOut({ scope: 'local' }).catch(()=>{});
+      throw new Error(e2.message === 'SESION_CADUCADA' ? 'CREDENCIALES' : e2.message);
+    }
+    if(r.negocio && r.negocio.slug !== NEGOCIO){
+      await sb.auth.signOut({ scope: 'local' }).catch(()=>{});
+      throw new Error('CREDENCIALES');
+    }
     // v104 — al crear la cuenta ya marcó la casilla: queda aceptada.
     if(authMode === 'signup'){
       try{
-        const e = await api('legal_estado_gymbro', { p_token: r.token });
-        await api('aceptar_legal_gymbro', { p_token: r.token, p_version: e.version });
+        const e = await api('legal_estado_gymbro', {});
+        await api('aceptar_legal_gymbro', { p_version: e.version });
       }catch(e2){ /* si falla, se le vuelve a pedir al entrar */ }
     }
     try{ localStorage.setItem(SESION_KEY + '.yo', JSON.stringify(usuarioDe(r))); }catch(e2){}
@@ -6182,7 +6213,7 @@ const legalGate = document.getElementById('legalGate');
 let legalVersion = null;
 async function comprobarLegal(){
   let e;
-  try{ e = await api('legal_estado_gymbro', { p_token: sesionToken }); }catch(err){ return; }
+  try{ e = await api('legal_estado_gymbro', {}); }catch(err){ return; }
   if(e.aceptada){ legalGate.hidden = true; return; }
   legalVersion = e.version;
   document.getElementById('legalCheck').checked = false;
@@ -6196,7 +6227,7 @@ document.getElementById('legalAceptar').addEventListener('click', async ()=>{
   }
   msg.textContent = 'Un momento...'; msg.classList.remove('error');
   try{
-    await api('aceptar_legal_gymbro', { p_token: sesionToken, p_version: legalVersion });
+    await api('aceptar_legal_gymbro', { p_version: legalVersion });
     legalGate.hidden = true;
   }catch(e){
     msg.textContent = textoError(e); msg.classList.add('error');
@@ -6206,7 +6237,8 @@ document.getElementById('legalAceptar').addEventListener('click', async ()=>{
 document.getElementById('legalSalir').addEventListener('click', ()=> document.getElementById('logoutBtn').click());
 
 document.getElementById('logoutBtn').addEventListener('click', async ()=>{
-  try{ await api('salir_gymbro', { p_token: sesionToken }); }catch(e){}
+  // Cierra solo la sesión de este móvil (las de otros móviles siguen).
+  try{ await sb.auth.signOut({ scope: 'local' }); }catch(e){}
   cerrarSesionLocal();
 });
 
@@ -7374,19 +7406,22 @@ function onLoggedOut(){
 // pantalla en mitad del entreno — eso se sentía como la app "congelada"
 // o sin responder al desbloquear el teléfono. Ahora solo se hace la carga
 // completa la primera vez (o si cambia de cuenta).
-// v97 — sin Supabase Auth: al abrir, si hay sesión guardada se pregunta
-// quién es (yo_gymbro, que además alarga la sesión). Sin conexión se deja
-// entrar con lo último conocido para no bloquear el entreno.
+// v97 — al abrir, si hay sesión guardada se pregunta quién es (yo_gymbro).
+// Sin conexión se deja entrar con lo último conocido para no bloquear el
+// entreno. v107 — la sesión es la de Supabase (la librería la renueva sola).
 (async ()=>{
   // Con un enlace de recuperar contraseña se queda en esa pantalla.
   if(recuperarToken){ authGate.classList.remove('hidden'); return; }
-  if(!sesionToken){ onLoggedOut(); return; }
+  let haySesion = false;
+  try{ haySesion = !!(await sb.auth.getSession()).data.session; }catch(e){}
+  if(!haySesion){ onLoggedOut(); return; }
   try{
-    const yo = await api('yo_gymbro', { p_token: sesionToken });
+    const yo = await api('yo_gymbro', {});
+    if(yo.negocio && yo.negocio.slug !== NEGOCIO) throw new Error('SESION_CADUCADA');
     try{ localStorage.setItem(SESION_KEY + '.yo', JSON.stringify(usuarioDe(yo))); }catch(e){}
     onLoggedIn(usuarioDe(yo));
   }catch(e){
-    if(e.message === 'SESION_CADUCADA' || e.message === 'NEGOCIO_NO_VALIDO'){ guardarSesion(null); onLoggedOut(); return; }
+    if(e.message === 'SESION_CADUCADA' || e.message === 'NEGOCIO_NO_VALIDO'){ await sb.auth.signOut({ scope: 'local' }).catch(()=>{}); onLoggedOut(); return; }
     let yo = null;
     try{ yo = JSON.parse(localStorage.getItem(SESION_KEY + '.yo')); }catch(e2){}
     if(yo) onLoggedIn(yo); else onLoggedOut();
