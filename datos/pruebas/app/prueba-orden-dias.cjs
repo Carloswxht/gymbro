@@ -8,7 +8,7 @@ const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const { execSync } = require('child_process');
 const OUT = process.argv[2];
 const B = 'http://127.0.0.1:8091';
-const sql = q => execSync(`psql -h /var/tmp/gympg -p 5445 -U postgres -d prueba -Atc "${q}"`).toString().trim();
+const sql = q => execSync(`psql -h /var/tmp/gympg -p 5445 -U postgres -d ${process.env.PGDATABASE || "login"} -Atc "${q}"`).toString().trim();
 const orden = email => sql(`select p.reps from gymbro.progreso_gymbro p join comun.usuarios u on u.id = p.usuario_id where u.email = '${email}' and p.work_key = '__day_slots__'`);
 let cortarDatos = 0;
 (async () => {
