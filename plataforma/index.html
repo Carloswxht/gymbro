@@ -36,16 +36,29 @@
     </form>
   </section>
 
-  <!-- HE OLVIDADO LA CONTRASEÑA (la cuenta de plataforma es la misma que en MultiBar) -->
+  <!-- HE OLVIDADO LA CONTRASEÑA (v108: correo de Supabase; la cuenta de plataforma es la misma que en MultiBar) -->
   <section class="vista" id="vOlvido" hidden>
     <button class="volver" type="button" data-ir="">← Entrar</button>
     <h1>Contraseña nueva</h1>
-    <p class="sub">Te mandamos un enlace para elegir otra. Se abre en la plataforma de MultiBar: la contraseña es la misma para las dos.</p>
+    <p class="sub">Te mandamos un enlace para elegir otra. La contraseña es la misma para la plataforma de Gymbro y la de MultiBar.</p>
     <form id="fOlvido" class="caja form" novalidate>
       <label class="campo"><span>Correo</span><input id="oEmail" type="email" inputmode="email" autocomplete="username" autocapitalize="off" required></label>
       <p class="ok" id="oOk" hidden>Si el correo es de la cuenta de plataforma, te llegará un enlace en unos minutos. Mira también en «Spam».</p>
       <p class="error" id="oError" role="alert" hidden></p>
       <button class="btn btn-azul" type="submit">Mandar enlace</button>
+    </form>
+  </section>
+
+  <!-- CONTRASEÑA NUEVA (desde el enlace del correo) -->
+  <section class="vista" id="vNueva" hidden>
+    <p class="eti">Plataforma</p>
+    <h1>Elige tu contraseña nueva</h1>
+    <p class="sub" id="nSub">Mínimo 8 caracteres.</p>
+    <form id="fNueva" class="caja form" novalidate>
+      <label class="campo"><span>Contraseña nueva</span><input id="nPass" type="password" autocomplete="new-password" required></label>
+      <label class="campo"><span>Repite la contraseña</span><input id="nPass2" type="password" autocomplete="new-password" required></label>
+      <p class="error" id="nError" role="alert" hidden></p>
+      <button class="btn btn-azul" type="submit">Guardar y entrar</button>
     </form>
   </section>
 
@@ -121,7 +134,7 @@
 <!-- v107 — librería de Supabase (login), guardada en la propia web. Licencia MIT. -->
 <script src="/vendor/supabase-js-2.45.4/supabase.js"></script>
 <script>
-const VERSION = 107;
+const VERSION = 108;
 const API_URL = 'https://dorunbacwnkwdatfscri.supabase.co/rest/v1/rpc/';
 const FUNC_URL = 'https://dorunbacwnkwdatfscri.supabase.co/functions/v1/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
@@ -211,10 +224,10 @@ async function mandarInvitacion(email){
 }
 
 /* ---------- Vistas ---------- */
-const VISTAS = ['vEntrar', 'vOlvido', 'vLista', 'vFicha', 'vAlta', 'vHecho'];
+const VISTAS = ['vEntrar', 'vOlvido', 'vNueva', 'vLista', 'vFicha', 'vAlta', 'vHecho'];
 function mostrar(id){
   VISTAS.forEach(v => $(v).hidden = v !== id);
-  $('bSalir').hidden = !token || id === 'vEntrar' || id === 'vOlvido';
+  $('bSalir').hidden = !token || id === 'vEntrar' || id === 'vOlvido' || id === 'vNueva';
   window.scrollTo(0, 0);
 }
 let toastTimer = null;
@@ -268,10 +281,48 @@ $('fOlvido').addEventListener('submit', async ev => {
   const email = limpiarCorreo($('oEmail').value);
   $('oError').hidden = true;
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ $('oError').textContent = 'Revisa el correo: no parece válido.'; $('oError').hidden = false; return; }
+  // v108 — lo manda Supabase; el enlace vuelve aquí con ?token_hash=…&type=recovery.
   try{
-    await fetch(FUNC_URL + 'recuperar-contrasena', { method:'POST', headers:{ 'apikey': API_KEY, 'Content-Type':'application/json' }, body: JSON.stringify({ email }) });
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/plataforma/' });
+    if(error && error.status === 429){ $('oError').textContent = 'Ya has pedido varios enlaces. Espera un rato y mira tu correo (también «Spam»).'; $('oError').hidden = false; return; }
+    if(error && !error.status){ $('oError').textContent = 'No se pudo mandar. Revisa la conexión e inténtalo de nuevo.'; $('oError').hidden = false; return; }
   }catch(e){ /* la pantalla dice siempre lo mismo */ }
   $('oOk').hidden = false;
+});
+// Enlace del correo: se comprueba, y solo la cuenta de plataforma elige aquí la nueva.
+let enlaceNueva = null;
+(() => {
+  const p = new URLSearchParams(location.search);
+  if(!p.get('token_hash') || p.get('type') !== 'recovery') return;
+  enlaceNueva = p.get('token_hash');
+  history.replaceState(null, '', location.pathname + location.hash);
+})();
+async function abrirEnlaceNueva(){
+  const fuera = texto => { $('eError').textContent = texto; $('eError').hidden = false; mostrar('vEntrar'); };
+  try{
+    const { error } = await sb.auth.verifyOtp({ token_hash: enlaceNueva, type: 'recovery' });
+    if(error) return fuera(!error.status ? 'No hay conexión. Revisa la señal y vuelve a abrir el enlace.' : 'El enlace ha caducado o ya se usó. Pide otro con «¿Has olvidado tu contraseña?».');
+    try{ await api('plataforma_yo_gymbro', {}); }
+    catch(e){ await sb.auth.signOut({ scope: 'local' }).catch(()=>{}); return fuera('Ese enlace no es de la cuenta de plataforma.'); }
+    $('nError').hidden = true; mostrar('vNueva');
+  }catch(e){ fuera('El enlace ha caducado o ya se usó. Pide otro con «¿Has olvidado tu contraseña?».'); }
+}
+$('fNueva').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const nueva = $('nPass').value, err = $('nError');
+  const mal = t => { err.textContent = t; err.hidden = false; };
+  err.hidden = true;
+  if(nueva.length < 8) return mal('La contraseña debe tener al menos 8 caracteres.');
+  if(nueva !== $('nPass2').value) return mal('Las contraseñas no coinciden.');
+  const { error } = await sb.auth.updateUser({ password: nueva });
+  if(error){
+    if(error.code === 'same_password' || /different from the old/i.test(error.message)) return mal('Esa es tu contraseña de ahora: elige otra distinta.');
+    if(error.status === 401 || error.status === 403){ guardarToken(null); $('eError').textContent = 'El enlace ha caducado. Pide otro con «¿Has olvidado tu contraseña?».'; $('eError').hidden = false; mostrar('vEntrar'); return; }
+    return mal(!error.status ? 'No hay conexión. Revisa la señal y vuelve a probar.' : 'No se pudo guardar. Inténtalo de nuevo.');
+  }
+  $('nPass').value = $('nPass2').value = '';
+  guardarToken(true); location.hash = ''; router();
+  toast('Contraseña cambiada.');
 });
 $('bSalir').addEventListener('click', async () => {
   try{ await sb.auth.signOut({ scope: 'local' }); }catch(e){ /* ya está fuera */ }
@@ -593,6 +644,7 @@ function router(){
 }
 window.addEventListener('hashchange', router);
 (async () => {
+  if(enlaceNueva) return abrirEnlaceNueva();
   let haySesion = false;
   try{ haySesion = !!(await sb.auth.getSession()).data.session; }catch(e){}
   if(haySesion){
