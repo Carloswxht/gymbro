@@ -101,12 +101,14 @@ async function contexto(browser){
     await page.check('#authAceptoCheck'); await page.click('#authSubmit'); await page.waitForTimeout(1500);
     if (!(await msg()).includes('ya tiene una cuenta')) throw new Error(await msg());
   });
-  await paso('9 recuperar la contraseña (correo propio de Gymbro): la nueva vale para entrar con Supabase', async () => {
+  await paso('9 recuperar la contraseña (v108: correo de Supabase): la nueva vale para entrar con Supabase', async () => {
     await page.goto(B + '/?g=war300'); await page.waitForTimeout(1200);
     await page.click('#authForgot'); await page.fill('#authEmail', 'usuarioswxht@gmail.com'); await page.click('#authSubmit'); await page.waitForTimeout(1200);
     const e = await (await fetch(B + '/__ultimo_enlace')).json();
-    await page.goto('about:blank'); await page.goto(B + '/?g=war300#recuperar=' + e.token); await page.waitForTimeout(1200);
-    await page.fill('#authPass', 'clave-cambiada-9'); await page.fill('#authPass2', 'clave-cambiada-9'); await page.click('#authSubmit'); await page.waitForTimeout(1500);
+    await page.goto('about:blank'); await page.goto(e.enlace); await page.waitForTimeout(1500);
+    await page.fill('#authPass', 'clave-cambiada-9'); await page.fill('#authPass2', 'clave-cambiada-9'); await page.click('#authSubmit'); await page.waitForTimeout(2500);
+    if (!(await dentro())) throw new Error('no entró al guardar: ' + await msg());
+    await otroMovil(); await page.goto(B + '/?g=war300'); await page.waitForTimeout(1200);
     await page.fill('#authEmail', 'usuarioswxht@gmail.com'); await page.fill('#authPass', 'clave-prueba-1'); await page.click('#authSubmit'); await page.waitForTimeout(1500);
     if (await dentro()) throw new Error('entró con la vieja');
     await page.fill('#authPass', 'clave-cambiada-9'); await page.click('#authSubmit'); await page.waitForTimeout(2800);

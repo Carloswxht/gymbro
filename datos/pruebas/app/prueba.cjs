@@ -50,7 +50,7 @@ const OUT = process.argv[2];
     await page.reload(); await page.waitForTimeout(2500); if (await gateVisible()) throw new Error('pidió entrar'); await cap('04-recargar');
   });
   await paso('8 ajustes con versión', async () => {
-    const v = await page.textContent('#appVersion'); if (v !== 'Gymbro v107') throw new Error(v);
+    const v = await page.textContent('#appVersion'); if (v !== 'Gymbro v108') throw new Error(v);
     await page.evaluate(() => document.getElementById('settingsOverlay').classList.add('open')); await page.waitForTimeout(400);
     await page.evaluate(() => { const s = document.querySelector('#settingsOverlay .settings-sheet'); s.scrollTop = s.scrollHeight; }); await page.waitForTimeout(300); await cap('05-ajustes');
     await page.evaluate(() => document.getElementById('settingsOverlay').classList.remove('open'));

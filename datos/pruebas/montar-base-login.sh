@@ -12,6 +12,7 @@ P="$P -d login"
 sed '/^create role anon/d' datos/pruebas/replica-local.sql | $P >/dev/null   # los roles ya existen en el servidor
 $P -f datos/pruebas/replica-auth.sql
 $P -f datos/pruebas/comun-cuentas-supabase.sql
+$P -f datos/pruebas/comun-marca-correo.sql
 for f in datos/cambios/2026-*.sql; do $P -f "$f" >/dev/null; done
 $P -f datos/pruebas/datos-prueba-gymbro.sql
 echo "base login lista"

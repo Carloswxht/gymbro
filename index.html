@@ -5025,7 +5025,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // v107 — Se entra con el login de Supabase (decisión de Carlos, 21 oct): la
 // librería guarda la sesión en el móvil y la renueva sola; cada llamada lleva
 // esa sesión y la base reconoce a la persona por su cuenta (auth.uid()).
-const APP_VERSION = 107;
+const APP_VERSION = 108;
 const SUPABASE_URL = 'https://dorunbacwnkwdatfscri.supabase.co';
 const API_URL = SUPABASE_URL + '/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
@@ -6071,6 +6071,9 @@ const authForgot = document.getElementById('authForgot');
 const authPassField = document.getElementById('authPassField');
 const authEmailField = authEmail.closest('.auth-field');
 let recuperarToken = null;
+// v108 — o el del correo de Supabase (?token_hash=…&type=recovery): mientras
+// se elige la contraseña nueva hay sesión, y se guarda con updateUser.
+let recuperarSb = null, conSesionRecuperar = false;
 function setAuthMode(mode){
   authMode = mode;
   const txt = { signin: ['Entrar', 'Entrar'], signup: ['Crear cuenta', 'Crear cuenta'],
@@ -6091,10 +6094,15 @@ function setAuthMode(mode){
     : mode === 'signup' ? '¿Ya tienes cuenta? <span>Entrar</span>' : '<span>Volver a entrar</span>';
   setAuthMsg('');
 }
-authSwitch.addEventListener('click', ()=> setAuthMode(authMode === 'signin' ? 'signup' : 'signin'));
+authSwitch.addEventListener('click', ()=>{
+  // Si deja a medias la contraseña nueva del enlace, se cierra esa sesión.
+  if(conSesionRecuperar){ conSesionRecuperar = false; sb.auth.signOut({ scope: 'local' }).catch(()=>{}); }
+  setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+});
 authForgot.addEventListener('click', ()=> setAuthMode('recover'));
 
-// El enlace del correo abre la app con #recuperar=CÓDIGO.
+// El correo de bienvenida abre la app con #recuperar=CÓDIGO (correo propio
+// de Gymbro, como antes).
 (()=>{
   const m = location.hash.match(/recuperar=([0-9a-f]{64})/);
   if(!m) return;
@@ -6103,19 +6111,65 @@ authForgot.addEventListener('click', ()=> setAuthMode('recover'));
   setAuthMode('reset');
   setAuthMsg('Elige tu contraseña nueva (mínimo 8 caracteres).');
 })();
+// v108 — El de «¿Has olvidado tu contraseña?» lo manda Supabase (con el logo y
+// los colores del gimnasio) y abre la app con ?token_hash=…&type=recovery.
+(()=>{
+  const p = new URLSearchParams(location.search);
+  if(!p.get('token_hash') || p.get('type') !== 'recovery') return;
+  recuperarSb = p.get('token_hash');
+  p.delete('token_hash'); p.delete('type');
+  history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
+  setAuthMode('reset');
+  setAuthMsg('Comprobando el enlace...');
+})();
+async function abrirEnlaceRecuperar(){
+  authGate.classList.remove('hidden');
+  authSubmit.disabled = true;
+  const caducado = ()=>{
+    setAuthMode('recover');
+    setAuthMsg('El enlace ha caducado o ya se usó. Escribe tu correo y te mandamos otro.', true);
+  };
+  try{
+    const { error } = await sb.auth.verifyOtp({ token_hash: recuperarSb, type: 'recovery' });
+    recuperarSb = null;
+    if(error){
+      if(errorLogin(error).message === 'SIN_RED'){ setAuthMode('signin'); setAuthMsg(textoError(errorLogin(error)), true); }
+      else caducado();
+      return;
+    }
+    // Solo cuentas de este gimnasio (el correo puede ser de otro producto).
+    let yo;
+    try{ yo = await api('yo_gymbro', {}); }catch(e){ yo = null; }
+    if(!yo || (yo.negocio && yo.negocio.slug !== NEGOCIO)){
+      await sb.auth.signOut({ scope: 'local' }).catch(()=>{});
+      setAuthMode('signin');
+      setAuthMsg('Ese enlace no es de una cuenta de este gimnasio.', true);
+      return;
+    }
+    conSesionRecuperar = true;
+    authEmail.value = yo.email || '';
+    setAuthMode('reset');
+    setAuthMsg('Elige tu contraseña nueva (mínimo 8 caracteres).');
+  }catch(e){
+    caducado();
+  }finally{
+    authSubmit.disabled = false;
+  }
+}
 
 async function pedirEnlaceRecuperar(email){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ setAuthMsg('Revisa el correo: no parece válido.', true); return; }
   setAuthMsg('Un momento...');
   try{
-    const res = await fetch('https://dorunbacwnkwdatfscri.supabase.co/functions/v1/recuperar-contrasena-gymbro', {
-      method: 'POST', headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + '/?g=' + encodeURIComponent(NEGOCIO),
     });
-    if(!res.ok) throw new Error('ERROR');
+    if(error) throw error.status === 429 ? new Error('DEMASIADOS_INTENTOS') : new Error('ERROR');
     setAuthMsg('Si ese correo tiene cuenta, te llegará un enlace en unos minutos. Mira también en «Spam».');
   }catch(e){
-    setAuthMsg('No se pudo mandar. Revisa la conexión e inténtalo de nuevo.', true);
+    setAuthMsg(e.message === 'DEMASIADOS_INTENTOS'
+      ? 'Ya has pedido varios enlaces. Espera un rato y mira tu correo (también «Spam»).'
+      : 'No se pudo mandar. Revisa la conexión e inténtalo de nuevo.', true);
   }
 }
 
@@ -6124,6 +6178,7 @@ async function guardarContrasenaNueva(){
   if(nueva.length < 8){ setAuthMsg('La contraseña debe tener al menos 8 caracteres.', true); return; }
   if(nueva !== authPass2.value){ setAuthMsg('Las contraseñas no coinciden.', true); return; }
   setAuthMsg('Un momento...');
+  if(conSesionRecuperar) return guardarContrasenaSupabase(nueva);
   try{
     const r = await api('restablecer_gymbro', { p_token: recuperarToken, p_nueva: nueva });
     recuperarToken = null;
@@ -6134,6 +6189,34 @@ async function guardarContrasenaNueva(){
     setAuthMsg(e.message === 'ENLACE_NO_VALIDO'
       ? 'El enlace ha caducado o ya se usó. Pide otro con «¿Has olvidado tu contraseña?».'
       : textoError(e), true);
+  }
+}
+
+// v108 — con el enlace de Supabase ya hay sesión: se guarda y se entra.
+async function guardarContrasenaSupabase(nueva){
+  try{
+    const { error } = await sb.auth.updateUser({ password: nueva });
+    if(error){
+      if(error.code === 'same_password' || /different from the old/i.test(error.message)) throw new Error('MISMA_PASSWORD');
+      if(error.status === 401 || error.status === 403) throw new Error('SESION_CADUCADA');
+      throw errorLogin(error);
+    }
+    const r = await api('yo_gymbro', {});
+    conSesionRecuperar = false;
+    try{ localStorage.setItem(SESION_KEY + '.yo', JSON.stringify(usuarioDe(r))); }catch(e){}
+    authPass.value = '';
+    authPass2.value = '';
+    setAuthMode('signin');
+    onLoggedIn(usuarioDe(r));
+  }catch(e){
+    if(e.message === 'SESION_CADUCADA'){
+      conSesionRecuperar = false;
+      await sb.auth.signOut({ scope: 'local' }).catch(()=>{});
+      setAuthMode('recover');
+      setAuthMsg('El enlace ha caducado. Escribe tu correo y te mandamos otro.', true);
+      return;
+    }
+    setAuthMsg(e.message === 'MISMA_PASSWORD' ? 'Esa es tu contraseña de ahora: elige otra distinta.' : textoError(e), true);
   }
 }
 
@@ -7412,6 +7495,7 @@ function onLoggedOut(){
 (async ()=>{
   // Con un enlace de recuperar contraseña se queda en esa pantalla.
   if(recuperarToken){ authGate.classList.remove('hidden'); return; }
+  if(recuperarSb){ abrirEnlaceRecuperar(); return; }
   let haySesion = false;
   try{ haySesion = !!(await sb.auth.getSession()).data.session; }catch(e){}
   if(!haySesion){ onLoggedOut(); return; }

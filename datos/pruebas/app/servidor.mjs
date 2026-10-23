@@ -3,6 +3,10 @@
 // quién soy y cambiar la contraseña) con auth.users de la base local; una
 // llamada con «Authorization: Bearer <sesión>» va como «authenticated» con su
 // sub, como en Supabase (auth.uid()); sin sesión, como «anon».
+// v108: también «¿Has olvidado tu contraseña?» de Supabase (/auth/v1/recover y
+// /auth/v1/verify): en vez de mandar el correo (Edge Function común
+// «enviar-correo») guarda en /__ultimo_enlace el enlace que llevaría su botón
+// y la imagen que daría public.marca_correo.
 // Base: PGDATABASE (por defecto «prueba»; la del login es «login»).
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto'; import pg from 'pg';
 const RAIZ = process.argv[2], PUERTO = 8091;
@@ -21,6 +25,12 @@ function leerJwt(t){
   return d.exp > Date.now() / 1000 ? d : null;
 }
 const renovaciones = new Map(); // refresh_token -> id de la cuenta
+const enlaces = new Map();      // token_hash de recuperar -> { id, hasta }
+// Como montarEnlace de la Edge Function «enviar-correo» (AutonomIA-Lab).
+function montarEnlace(destino, hash, tipo){
+  const [sinAncla] = (destino || 'https://autonomialab.es/auth/confirmar/').split('#');
+  return `${sinAncla}${sinAncla.includes('?') ? '&' : '?'}token_hash=${encodeURIComponent(hash)}&type=${encodeURIComponent(tipo)}`;
+}
 const DURACION = Number(process.env.SESION_SEGUNDOS || 3600);
 function sesion(u){
   const ahora = Math.floor(Date.now() / 1000), refresh = crypto.randomBytes(16).toString('hex');
@@ -54,6 +64,27 @@ async function auth(req, res, url, body){
       await q('update auth.users set last_sign_in_at = now() where id = $1', [u.id]);
       return json(res, 200, sesion(u));
     }
+    if (url.pathname === '/auth/v1/recover') {
+      const [u] = await q('select id from auth.users where lower(email) = lower($1)', [String(body.email || '').trim()]);
+      if (u) {
+        for (const [h, e] of enlaces) if (e.id === u.id) enlaces.delete(h); // el anterior deja de valer
+        const hash = crypto.randomBytes(20).toString('hex');
+        enlaces.set(hash, { id: u.id, hasta: Date.now() + 3600e3 });
+        await q('set role service_role');
+        const [m] = await q('select public.marca_correo($1) as m', [u.id]);
+        await q('reset role');
+        ultimoEnlace = { tipo: 'recovery', enlace: montarEnlace(url.searchParams.get('redirect_to'), hash, 'recovery'), marca: m.m };
+      }
+      return json(res, 200, {});
+    }
+    if (url.pathname === '/auth/v1/verify' && req.method === 'POST') {
+      const e = enlaces.get(body.token_hash);
+      enlaces.delete(body.token_hash);
+      if (!e || e.hasta < Date.now() || body.type !== 'recovery') return malAuth(res, 403, 'otp_expired', 'Email link is invalid or has expired');
+      const [u] = await q('select id, email, banned_until, created_at from auth.users where id = $1', [e.id]);
+      if (u.banned_until && new Date(u.banned_until) > new Date()) return malAuth(res, 400, 'user_banned', 'User is banned');
+      return json(res, 200, sesion(u));
+    }
     const d = leerJwt(bearer);
     if (url.pathname === '/auth/v1/logout') return json(res, 204);
     if (!d) return malAuth(res, 401, 'bad_jwt', 'invalid JWT');
@@ -62,6 +93,8 @@ async function auth(req, res, url, body){
       return json(res, 200, usuario(u));
     }
     if (url.pathname === '/auth/v1/user' && req.method === 'PUT') {
+      if (body.password && (await q('select extensions.crypt($1, encrypted_password) = encrypted_password as igual from auth.users where id = $2', [body.password, d.sub]))[0].igual)
+        return malAuth(res, 422, 'same_password', 'New password should be different from the old password.');
       if (body.password) await q(`update auth.users set encrypted_password = extensions.crypt($1, extensions.gen_salt('bf', 4)), updated_at = now() where id = $2`, [body.password, d.sub]);
       const [u] = await q('select id, email, created_at from auth.users where id = $1', [d.sub]);
       return json(res, 200, usuario(u));
