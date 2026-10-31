@@ -1381,12 +1381,15 @@
   .rt-body{padding:4px 0 8px;}
   .rt-group{padding:0 0 2px;}
   /* v110 (Carlos) — la línea del título de cada músculo, de lado a lado, en
-     gris; sus sub-músculos con el fondo normal. */
-  .rt-muscle{font-family:'Archivo Black',sans-serif;font-size:12.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);margin:0;padding:10px 16px;background:color-mix(in srgb, var(--accent, #8A8F98) 10%, var(--panel-2));border-bottom:1px solid var(--line);}
+     gris; sus sub-músculos con el fondo normal. v111: la fila de los nombres
+     de las columnas (Sub-músculo, Ejercicio…) también en gris: las dos
+     líneas forman el título. */
+  .rt-muscle{font-family:'Archivo Black',sans-serif;font-size:12.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);margin:0;padding:10px 16px 4px;background:var(--rt-titulo, var(--panel));}
   .rt-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;}
   .rt-scroll::-webkit-scrollbar{display:none;}
   .rt-table{border-collapse:separate;border-spacing:0;min-width:100%;}
-  .rt-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-dim);text-align:center;padding:6px 8px;white-space:nowrap;border-bottom:1px solid var(--line);background:var(--panel);}
+  .rt-body, .rt-group{--rt-titulo:color-mix(in srgb, var(--accent, #8A8F98) 10%, var(--panel-2));}
+  .rt-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-dim);text-align:center;padding:6px 8px;white-space:nowrap;border-bottom:1px solid var(--line);background:var(--rt-titulo, var(--panel));}
   .rt-table td{padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:middle;text-align:center;background:var(--panel);}
   .rt-table tbody tr:last-child td{border-bottom:none;}
   .rt-c1,.rt-c2{position:sticky;z-index:2;text-align:left !important;box-sizing:border-box;vertical-align:top !important;}
@@ -5025,7 +5028,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // v107 — Se entra con el login de Supabase (decisión de Carlos, 21 oct): la
 // librería guarda la sesión en el móvil y la renueva sola; cada llamada lleva
 // esa sesión y la base reconoce a la persona por su cuenta (auth.uid()).
-const APP_VERSION = 110;
+const APP_VERSION = 111;
 const SUPABASE_URL = 'https://dorunbacwnkwdatfscri.supabase.co';
 const API_URL = SUPABASE_URL + '/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
