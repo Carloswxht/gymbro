@@ -1150,6 +1150,16 @@
   .pie-app .pie-firma b{font-weight:600;color:var(--day1);text-decoration:underline;text-underline-offset:2px;}
   .auth-box .pie-app{padding-top:22px;}
   .auth-legal a{color:var(--text-dim);}
+  /* v112 (Carlos) — confirmación de «Finalizar»: ventana propia (el confirm()
+     del navegador no deja cambiar la letra), letra grande y una sola frase. */
+  .fin-confirm{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px 20px;}
+  .fin-confirm[hidden]{display:none;}
+  .fin-confirm .fin-box{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:26px 22px 20px;box-sizing:border-box;}
+  .fin-confirm .fin-txt{font-family:'Archivo',sans-serif;font-weight:700;font-size:24px;line-height:1.3;color:var(--text);text-align:center;margin:0 0 24px;}
+  .fin-confirm .fin-btns{display:flex;gap:10px;}
+  .fin-confirm .fin-btns button{flex:1;font-family:'Archivo',sans-serif;font-weight:700;font-size:17px;padding:15px 10px;border-radius:12px;cursor:pointer;}
+  .fin-confirm #finNo{background:transparent;color:var(--text);border:1.5px solid var(--line);}
+  .fin-confirm #finSi{background:var(--text);color:var(--ink);border:none;}
   .legal-gate{position:fixed;inset:0;z-index:3000;background:var(--ink);display:flex;align-items:center;justify-content:center;padding:24px 20px;overflow-y:auto;}
   .legal-gate[hidden]{display:none;}
   .legal-gate .legal-box{width:100%;max-width:360px;}
@@ -1495,6 +1505,16 @@
   </div>
 
   <!-- v104 — quien no ha aceptado la privacidad vigente la acepta antes de seguir -->
+  <div class="fin-confirm" id="finConfirm" hidden role="dialog" aria-modal="true" aria-labelledby="finTxt">
+    <div class="fin-box">
+      <p class="fin-txt" id="finTxt">Confirma si terminaste el entreno de hoy.</p>
+      <div class="fin-btns">
+        <button type="button" id="finNo">No</button>
+        <button type="button" id="finSi">Sí, terminé</button>
+      </div>
+    </div>
+  </div>
+
   <div class="legal-gate" id="legalGate" hidden>
     <div class="legal-box">
       <p class="kicker marca-nombre"></p>
@@ -4918,10 +4938,7 @@ continueBtn.addEventListener('click', async ()=>{
       showToast('Marca al menos un ejercicio como "Hecho" para guardar.', true);
       return;
     }
-    const msg = nDone >= total
-      ? `¿Guardar y terminar el entreno? Hiciste los ${total} ejercicios.`
-      : `¿Terminar el entreno? Hiciste ${nDone} de ${total} ejercicios. Los que no marcaste no se guardan.`;
-    if(!confirm(msg)) return;
+    if(!(await confirmarFin())) return;
     continueBtn.classList.remove('ready');
     const hadProgress = doneThisSession.size > 0;
     finishingSession = true;
@@ -4951,10 +4968,7 @@ continueBtn.addEventListener('click', async ()=>{
       showToast('Marca al menos un ejercicio como "Hecho" para guardar.', true);
       return;
     }
-    const msg = nDone >= todayItems.length
-      ? `¿Guardar y terminar la rutina de casa? Hiciste los ${todayItems.length} ejercicios.`
-      : `¿Terminar la rutina de casa? Hiciste ${nDone} de ${todayItems.length} ejercicios. Los que no marcaste no se guardan.`;
-    if(!confirm(msg)) return;
+    if(!(await confirmarFin())) return;
     continueBtn.classList.remove('ready');
     const hadProgress = doneHomeSession.size > 0;
     await finishHomeSession();
@@ -5011,6 +5025,18 @@ let toastTimer = null;
 // v84 — Un aviso importante (ej. "¡Todo hecho!") no lo tapa el "Guardado ✓"
 // automático que llega justo después; y dura un poco más en pantalla.
 let importantToastUntil = 0;
+// v112 — «Confirma si terminaste el entreno de hoy.» con «No» / «Sí, terminé».
+// Tocar fuera de la ventana cuenta como «No».
+function confirmarFin(){
+  const caja = document.getElementById('finConfirm');
+  return new Promise(ok => {
+    const fin = v => { caja.hidden = true; caja.onclick = null; document.getElementById('finSi').onclick = document.getElementById('finNo').onclick = null; ok(v); };
+    document.getElementById('finSi').onclick = () => fin(true);
+    document.getElementById('finNo').onclick = () => fin(false);
+    caja.onclick = ev => { if(ev.target === caja) fin(false); };
+    caja.hidden = false;
+  });
+}
 function showToast(msg, important){
   if(msg === 'Guardado ✓' && Date.now() < importantToastUntil) return;
   const ms = important ? 3500 : 2200;
@@ -5028,7 +5054,7 @@ const workData = {}; // subId::ejercicio -> { peso, series, reps }
 // v107 — Se entra con el login de Supabase (decisión de Carlos, 21 oct): la
 // librería guarda la sesión en el móvil y la renueva sola; cada llamada lleva
 // esa sesión y la base reconoce a la persona por su cuenta (auth.uid()).
-const APP_VERSION = 111;
+const APP_VERSION = 112;
 const SUPABASE_URL = 'https://dorunbacwnkwdatfscri.supabase.co';
 const API_URL = SUPABASE_URL + '/rest/v1/rpc/';
 const API_KEY = 'sb_publishable_PK12CcvGBEZsFT9lsLpSIA_IsP-v8iS';
